@@ -1,13 +1,21 @@
 interface StatCardProps {
   title: string
   value: string
+  description: string
 }
 
-function StatCard({ title, value }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  description,
+}: StatCardProps) {
   return (
     <div>
-      <h3>{title}</h3>
+      <span>{title}</span>
+
       <strong>{value}</strong>
+
+      <small>{description}</small>
     </div>
   )
 }

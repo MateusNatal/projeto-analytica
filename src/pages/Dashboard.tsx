@@ -22,9 +22,25 @@ function Dashboard() {
     0
   )
 
-  const totalROAS = totalRevenue / totalInvestment
+  const totalClicks = campaigns.reduce(
+    (total, campaign) => total + campaign.clicks,
+    0
+  )
 
-  const totalCPA = totalInvestment / totalConversions
+  const totalImpressions = campaigns.reduce(
+    (total, campaign) => total + campaign.impressions,
+    0
+  )
+
+  const totalROAS =
+    totalInvestment > 0
+      ? totalRevenue / totalInvestment
+      : 0
+
+  const totalCTR =
+    totalImpressions > 0
+      ? (totalClicks / totalImpressions) * 100
+      : 0
 
   return (
     <main>
@@ -36,21 +52,31 @@ function Dashboard() {
         <StatCard
           title="Investimento"
           value={`R$ ${totalInvestment.toFixed(2)}`}
+          description="Total investido"
         />
 
         <StatCard
           title="Conversões"
           value={totalConversions.toString()}
+          description="Conversões realizadas"
         />
 
         <StatCard
           title="Receita"
           value={`R$ ${totalRevenue.toFixed(2)}`}
+          description="Receita gerada"
         />
 
         <StatCard
           title="ROAS"
           value={totalROAS.toFixed(2)}
+          description="Retorno sobre investimento"
+        />
+
+        <StatCard
+          title="CTR"
+          value={`${totalCTR.toFixed(2)}%`}
+          description="Taxa de cliques geral"
         />
 
       </section>
