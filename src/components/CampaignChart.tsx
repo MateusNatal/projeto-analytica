@@ -9,9 +9,13 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
-import { campaigns } from "../data/mockData"
+import type { Campaign } from "../types/campaign"
 
-function CampaignChart() {
+interface CampaignChartProps {
+  campaigns: Campaign[]
+}
+
+function CampaignChart({ campaigns }: CampaignChartProps) {
   return (
     <section>
 

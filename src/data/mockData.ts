@@ -1,13 +1,4 @@
-export interface Campaign {
-  id: number
-  name: string
-  platform: string
-  investment: number
-  impressions: number
-  clicks: number
-  conversions: number
-  revenue: number
-}
+import type { Campaign } from "../types/campaign"
 
 export const campaigns: Campaign[] = [
   {

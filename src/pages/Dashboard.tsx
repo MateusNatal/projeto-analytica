@@ -1,4 +1,16 @@
+import { useState } from "react"
+import CampaignTable from "../components/CampaignTable"
+
 import { campaigns } from "../data/mockData"
+
+import {
+  calculateTotalInvestment,
+  calculateTotalConversions,
+  calculateTotalRevenue,
+  calculateTotalClicks,
+  calculateTotalImpressions,
+  filterCampaignsByPlatform,
+} from "../utils/dashboardMetrics"
 
 import Header from "../components/Header"
 import StatCard from "../components/StatCard"
@@ -7,30 +19,23 @@ import PerformanceCard from "../components/PerformanceCard"
 import AIInsights from "../components/AIInsights"
 
 function Dashboard() {
-  const totalInvestment = campaigns.reduce(
-    (total, campaign) => total + campaign.investment,
-    0
+  const [selectedPlatform, setSelectedPlatform] = useState("Todas")
+  
+
+  const filteredCampaigns = filterCampaignsByPlatform(
+    campaigns,
+    selectedPlatform
   )
 
-  const totalConversions = campaigns.reduce(
-    (total, campaign) => total + campaign.conversions,
-    0
-  )
+  const totalInvestment = calculateTotalInvestment(filteredCampaigns)
 
-  const totalRevenue = campaigns.reduce(
-    (total, campaign) => total + campaign.revenue,
-    0
-  )
+  const totalConversions = calculateTotalConversions(filteredCampaigns)
 
-  const totalClicks = campaigns.reduce(
-    (total, campaign) => total + campaign.clicks,
-    0
-  )
+  const totalRevenue = calculateTotalRevenue(filteredCampaigns)
 
-  const totalImpressions = campaigns.reduce(
-    (total, campaign) => total + campaign.impressions,
-    0
-  )
+  const totalClicks = calculateTotalClicks(filteredCampaigns)
+
+  const totalImpressions = calculateTotalImpressions(filteredCampaigns)
 
   const totalROAS =
     totalInvestment > 0
@@ -46,6 +51,27 @@ function Dashboard() {
     <main>
 
       <Header />
+
+      <section>
+
+        <label>
+          Plataforma:
+
+          <select
+            value={selectedPlatform}
+            onChange={(event) =>
+              setSelectedPlatform(event.target.value)
+            }
+          >
+            <option value="Todas">Todas</option>
+            <option value="Instagram Ads">Instagram Ads</option>
+            <option value="Facebook Ads">Facebook Ads</option>
+            <option value="Google Ads">Google Ads</option>
+          </select>
+        </label>
+
+      </section>
+
 
       <section>
 
@@ -84,12 +110,12 @@ function Dashboard() {
 
       <section>
 
-        <CampaignChart />
+        <CampaignChart campaigns={filteredCampaigns} />
 
-        <PerformanceCard />
+        <PerformanceCard campaigns={filteredCampaigns} />
 
       </section>
-
+<CampaignTable campaigns={filteredCampaigns} />
 
       <AIInsights />
 

@@ -1,4 +1,4 @@
-import type { Campaign } from "../data/mockData"
+import type { Campaign } from "../types/campaign"
 
 export function calculateCTR(campaign: Campaign): number {
   if (campaign.impressions === 0) {
