@@ -19,6 +19,7 @@ const readMigration = (name: string) =>
 const MIGRATIONS = [
   readMigration("20261016000000_initial_schema.sql"),
   readMigration("20261016010000_ai_usage.sql"),
+  readMigration("20261016020000_revoke_unused_privileges.sql"),
 ]
 
 const SUPABASE_SHIM = `
@@ -180,6 +181,127 @@ describe("save_dataset", () => {
     await expect(saveDataset("sem-login.csv")).rejects.toThrow(
       /não autenticado/
     )
+  })
+})
+
+describe("permissões dos papéis", () => {
+  const PRIVILEGES = [
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "TRUNCATE",
+    "REFERENCES",
+    "TRIGGER",
+  ]
+
+  async function grantedPrivileges(role: string, table: string) {
+    const { rows } = await db.query<{ privilege: string }>(
+      `select p as privilege
+       from unnest($1::text[]) p
+       where has_table_privilege($2, $3, p)
+       order by array_position($1::text[], p)`,
+      [PRIVILEGES, role, `public.${table}`]
+    )
+
+    return rows.map((row) => row.privilege)
+  }
+
+  it.each(["datasets", "campaigns"])(
+    "authenticated tem só select, insert, update e delete em %s",
+    async (table) => {
+      await asAdmin()
+
+      expect(await grantedPrivileges("authenticated", table)).toEqual([
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+      ])
+    }
+  )
+
+  it("authenticated tem só select e insert em ai_usage", async () => {
+    await asAdmin()
+
+    expect(await grantedPrivileges("authenticated", "ai_usage")).toEqual([
+      "SELECT",
+      "INSERT",
+    ])
+  })
+
+  it.each(["datasets", "campaigns", "ai_usage"])(
+    "anon não tem nenhuma permissão em %s",
+    async (table) => {
+      await asAdmin()
+
+      expect(await grantedPrivileges("anon", table)).toEqual([])
+    }
+  )
+
+  it("TRUNCATE (que ignoraria o RLS) é negado e não apaga dados de ninguém", async () => {
+    await asUser(ALICE)
+    await saveDataset("alice.csv")
+
+    await asUser(BOB)
+    await expect(
+      db.exec("truncate public.campaigns, public.datasets")
+    ).rejects.toThrow(/permission denied/)
+
+    await asUser(ALICE)
+    expect(await count("datasets")).toBe(1)
+    expect(await count("campaigns")).toBe(2)
+  })
+})
+
+describe("CRUD nos próprios registros", () => {
+  it("cria, lê, altera e exclui o próprio dataset e as próprias campanhas", async () => {
+    await asUser(ALICE)
+
+    // Criar
+    const id = await saveDataset("original.csv")
+    await db.query(
+      `insert into public.campaigns
+        (dataset_id, name, platform, investment, impressions, clicks, conversions, revenue)
+       values ($1, 'Extra', 'Google Ads', 10, 100, 5, 1, 30)`,
+      [id]
+    )
+
+    // Ler
+    expect(await count("datasets")).toBe(1)
+    expect(await count("campaigns")).toBe(3)
+
+    // Alterar
+    const renamed = await db.query(
+      "update public.datasets set name = 'renomeado.csv' where id = $1",
+      [id]
+    )
+    const repriced = await db.query(
+      "update public.campaigns set revenue = 99 where name = 'Extra'"
+    )
+
+    expect(renamed.affectedRows).toBe(1)
+    expect(repriced.affectedRows).toBe(1)
+
+    const { rows } = await db.query<{ name: string }>(
+      "select name from public.datasets where id = $1",
+      [id]
+    )
+    expect(rows[0].name).toBe("renomeado.csv")
+
+    // Excluir
+    const removedCampaign = await db.query(
+      "delete from public.campaigns where name = 'Extra'"
+    )
+    const removedDataset = await db.query(
+      "delete from public.datasets where id = $1",
+      [id]
+    )
+
+    expect(removedCampaign.affectedRows).toBe(1)
+    expect(removedDataset.affectedRows).toBe(1)
+    expect(await count("datasets")).toBe(0)
+    expect(await count("campaigns")).toBe(0)
   })
 })
 

@@ -85,7 +85,12 @@ O GitHub Actions (`.github/workflows/ci.yml`) roda lint, testes e build a cada p
 O login e o histórico de arquivos são opcionais: sem as variáveis abaixo, o app funciona normalmente, só sem essas funções.
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Rode a migração `supabase/migrations/20261016000000_initial_schema.sql` (cole no **SQL Editor** ou use `supabase db push`). Ela só cria tabelas novas (`datasets` e `campaigns`), com Row Level Security: cada usuário só acessa os próprios dados.
+2. Rode as migrações de `supabase/migrations/`, **em ordem** (cole no **SQL Editor** ou use `supabase db push`):
+   - `20261016000000_initial_schema.sql`: tabelas `datasets` e `campaigns`, com Row Level Security (cada usuário só acessa os próprios dados).
+   - `20261016010000_ai_usage.sql`: tabela `ai_usage`, usada no limite diário da IA.
+   - `20261016020000_revoke_unused_privileges.sql`: remove do papel `authenticated` as permissões `TRUNCATE`, `REFERENCES` e `TRIGGER` herdadas do Supabase. O `TRUNCATE` ignora o RLS e poderia apagar dados de todos os usuários; o app não usa nenhuma das três.
+
+   Nenhuma delas apaga dados.
 3. Em **Authentication → URL Configuration**, defina a *Site URL* como a URL de produção (ex.: `https://projeto-analytica.vercel.app`) e adicione `http://localhost:5173` em *Redirect URLs*.
 4. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Project Settings → API). Na Vercel, cadastre as mesmas variáveis e faça um novo deploy.
 
