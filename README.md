@@ -95,6 +95,30 @@ O login usa link mágico por e-mail. O serviço de e-mail padrão do Supabase te
 
 ---
 
+## 🤖 Análise com IA (OpenAI)
+
+A análise com IA roda só no servidor, na função `api/insights.ts` (Vercel Functions). A chave da OpenAI nunca vai para o navegador.
+
+- Exige login no Supabase: o token do usuário é validado no Supabase Auth.
+- Limite diário por usuário (`AI_DAILY_LIMIT`, padrão 20), registrado na tabela `ai_usage` (migração `20261016010000_ai_usage.sql`). O usuário não consegue apagar o próprio histórico de uso.
+- As métricas são recalculadas no servidor; o modelo recebe só nomes e números das campanhas exibidas, e o usuário é avisado disso antes de gerar.
+- A resposta é pedida em JSON estruturado e validada antes de chegar à tela.
+
+Configuração na Vercel (**Project Settings → Environment Variables**):
+
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `OPENAI_API_KEY` | sim | Chave da OpenAI. **Sem** prefixo `VITE_`. |
+| `OPENAI_MODEL` | não | Modelo usado (padrão `gpt-6-luna`). |
+| `OPENAI_REASONING_EFFORT` | não | `low` por padrão; deixe vazio para modelos que não aceitam o parâmetro. |
+| `AI_DAILY_LIMIT` | não | Análises por usuário em 24 horas (padrão 20). |
+
+A função também usa `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (ou `SUPABASE_URL` e `SUPABASE_ANON_KEY`) para validar o login.
+
+O `npm run dev` do Vite não executa as funções de `api/`. Para testar a IA localmente, use `npx vercel dev`.
+
+---
+
 ## 🚀 Deploy (Vercel)
 
 O projeto está configurado para a Vercel via `vercel.json`:

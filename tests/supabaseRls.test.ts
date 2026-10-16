@@ -10,15 +10,16 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 // usuário do JWT) e as permissões padrão que o Supabase concede ao schema
 // public, para garantir que a migração as restringe.
 
-const MIGRATION = readFileSync(
-  fileURLToPath(
-    new URL(
-      "../supabase/migrations/20261016000000_initial_schema.sql",
-      import.meta.url
-    )
-  ),
-  "utf8"
-)
+const readMigration = (name: string) =>
+  readFileSync(
+    fileURLToPath(new URL(`../supabase/migrations/${name}`, import.meta.url)),
+    "utf8"
+  )
+
+const MIGRATIONS = [
+  readMigration("20261016000000_initial_schema.sql"),
+  readMigration("20261016010000_ai_usage.sql"),
+]
 
 const SUPABASE_SHIM = `
   create role anon nologin;
@@ -97,7 +98,9 @@ async function saveDataset(
   return rows[0].id
 }
 
-async function count(table: "datasets" | "campaigns"): Promise<number> {
+async function count(
+  table: "datasets" | "campaigns" | "ai_usage"
+): Promise<number> {
   const { rows } = await db.query<{ total: number }>(
     `select count(*)::int as total from public.${table}`
   )
@@ -108,7 +111,9 @@ async function count(table: "datasets" | "campaigns"): Promise<number> {
 beforeAll(async () => {
   db = new PGlite()
   await db.exec(SUPABASE_SHIM)
-  await db.exec(MIGRATION)
+  for (const migration of MIGRATIONS) {
+    await db.exec(migration)
+  }
   await db.query("insert into auth.users (id) values ($1), ($2)", [
     ALICE,
     BOB,
@@ -118,6 +123,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await asAdmin()
   await db.exec("delete from public.datasets")
+  await db.exec("delete from public.ai_usage")
 })
 
 describe("save_dataset", () => {
@@ -283,5 +289,56 @@ describe("acesso anônimo", () => {
     await asAnon()
 
     await expect(saveDataset("anon.csv")).rejects.toThrow(/permission denied/)
+  })
+})
+
+describe("ai_usage (limite diário da IA)", () => {
+  it("o usuário registra e lê o próprio uso", async () => {
+    await asUser(ALICE)
+
+    await db.query("insert into public.ai_usage (user_id) values ($1)", [
+      ALICE,
+    ])
+    await db.query("insert into public.ai_usage default values")
+
+    expect(await count("ai_usage")).toBe(2)
+  })
+
+  it("não vê o uso de outros usuários", async () => {
+    await asUser(ALICE)
+    await db.query("insert into public.ai_usage default values")
+
+    await asUser(BOB)
+    expect(await count("ai_usage")).toBe(0)
+  })
+
+  it("não registra uso em nome de outro usuário", async () => {
+    await asUser(BOB)
+
+    await expect(
+      db.query("insert into public.ai_usage (user_id) values ($1)", [ALICE])
+    ).rejects.toThrow(/row-level security/)
+  })
+
+  it("não apaga nem altera o próprio uso para burlar o limite", async () => {
+    await asUser(ALICE)
+    await db.query("insert into public.ai_usage default values")
+
+    await expect(db.query("delete from public.ai_usage")).rejects.toThrow(
+      /permission denied/
+    )
+    await expect(
+      db.query(
+        "update public.ai_usage set created_at = now() - interval '2 days'"
+      )
+    ).rejects.toThrow(/permission denied/)
+
+    expect(await count("ai_usage")).toBe(1)
+  })
+
+  it("visitantes sem login não acessam", async () => {
+    await asAnon()
+
+    await expect(count("ai_usage")).rejects.toThrow(/permission denied/)
   })
 })

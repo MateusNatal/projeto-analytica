@@ -194,7 +194,7 @@ function Dashboard() {
 
       <CampaignTable campaigns={filteredCampaigns} />
 
-      <AIInsights />
+      <AIInsights campaigns={filteredCampaigns} session={session} />
 
     </main>
   )
