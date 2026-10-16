@@ -67,7 +67,16 @@ npm run dev     # servidor de desenvolvimento em http://localhost:5173
 npm run build   # checagem de tipos + build de produção em dist/
 npm run preview # serve o build de produção localmente
 npm run lint    # ESLint
+npm test        # testes automatizados (Vitest)
 ```
+
+---
+
+## ✅ Testes
+
+Os testes ficam em `tests/` e cobrem os cálculos das métricas, os totais do painel, a leitura de números em formato brasileiro e americano, a importação de CSV (Meta Ads, Google Ads, modelo próprio, UTF-16 e Windows-1252), a validação, a formatação e os insights automáticos. Os arquivos de `public/exemplos/` são usados como dados de teste.
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda lint, testes e build a cada push e pull request.
 
 ---
 
@@ -76,7 +85,7 @@ npm run lint    # ESLint
 O projeto está configurado para a Vercel via `vercel.json`:
 
 - **Install:** `npm ci`
-- **Build:** `npm run build`
+- **Build:** `npm test && npm run build` (o deploy não acontece se algum teste falhar)
 - **Saída:** `dist/`
 - Rotas do frontend caem em `index.html` (SPA); caminhos `/api/*` ficam reservados para funções de backend.
 
