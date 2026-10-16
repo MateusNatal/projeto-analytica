@@ -1,5 +1,10 @@
 import type { Campaign } from "../types/campaign"
 
+import {
+  formatCurrency,
+  formatNumber,
+} from "../utils/formatters"
+
 interface CampaignTableProps {
   campaigns: Campaign[]
 }
@@ -27,11 +32,11 @@ function CampaignTable({ campaigns }: CampaignTableProps) {
             <tr key={campaign.id}>
               <td>{campaign.name}</td>
               <td>{campaign.platform}</td>
-              <td>R$ {campaign.investment.toFixed(2)}</td>
-              <td>{campaign.impressions}</td>
-              <td>{campaign.clicks}</td>
-              <td>{campaign.conversions}</td>
-              <td>R$ {campaign.revenue.toFixed(2)}</td>
+              <td>{formatCurrency(campaign.investment)}</td>
+              <td>{formatNumber(campaign.impressions)}</td>
+              <td>{formatNumber(campaign.clicks)}</td>
+              <td>{formatNumber(campaign.conversions)}</td>
+              <td>{formatCurrency(campaign.revenue)}</td>
             </tr>
           ))}
         </tbody>

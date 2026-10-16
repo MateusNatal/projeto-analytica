@@ -3,6 +3,11 @@ import { useState } from "react"
 import type { Campaign } from "../types/campaign"
 
 import { calculateCampaignMetrics } from "../utils/metrics"
+import {
+  formatCurrency,
+  formatDecimal,
+  formatPercent,
+} from "../utils/formatters"
 
 interface PerformanceCardProps {
   campaigns: Campaign[]
@@ -13,12 +18,20 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
     campaigns[0]?.id ?? 0
   )
 
-  const campaign = campaigns.find(
-    (campaign) => campaign.id === selectedCampaignId
-  )
+  // Se o filtro de plataforma remover a campanha selecionada,
+  // usa a primeira campanha disponível em vez de travar o card.
+  const campaign =
+    campaigns.find((campaign) => campaign.id === selectedCampaignId) ??
+    campaigns[0]
 
   if (!campaign) {
-    return <p>Campanha não encontrada.</p>
+    return (
+      <section>
+        <h2>Performance</h2>
+
+        <p>Nenhuma campanha disponível para o filtro selecionado.</p>
+      </section>
+    )
   }
 
   const metrics = calculateCampaignMetrics(campaign)
@@ -32,7 +45,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         Campanha:
 
         <select
-          value={selectedCampaignId}
+          value={campaign.id}
           onChange={(event) =>
             setSelectedCampaignId(Number(event.target.value))
           }
@@ -56,7 +69,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         <span>CTR</span>
 
         <strong>
-          {metrics.ctr.toFixed(2)}%
+          {formatPercent(metrics.ctr)}
         </strong>
       </div>
 
@@ -64,7 +77,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         <span>CPC</span>
 
         <strong>
-          R$ {metrics.cpc.toFixed(2)}
+          {formatCurrency(metrics.cpc)}
         </strong>
       </div>
 
@@ -72,7 +85,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         <span>CPA</span>
 
         <strong>
-          R$ {metrics.cpa.toFixed(2)}
+          {formatCurrency(metrics.cpa)}
         </strong>
       </div>
 
@@ -80,7 +93,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         <span>Conversão</span>
 
         <strong>
-          {metrics.conversionRate.toFixed(2)}%
+          {formatPercent(metrics.conversionRate)}
         </strong>
       </div>
 
@@ -88,7 +101,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         <span>ROAS</span>
 
         <strong>
-          {metrics.roas.toFixed(2)}
+          {formatDecimal(metrics.roas)}
         </strong>
       </div>
 

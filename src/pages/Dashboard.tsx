@@ -12,6 +12,13 @@ import {
   filterCampaignsByPlatform,
 } from "../utils/dashboardMetrics"
 
+import {
+  formatCurrency,
+  formatDecimal,
+  formatNumber,
+  formatPercent,
+} from "../utils/formatters"
+
 import Header from "../components/Header"
 import StatCard from "../components/StatCard"
 import CampaignChart from "../components/CampaignChart"
@@ -77,31 +84,31 @@ function Dashboard() {
 
         <StatCard
           title="Investimento"
-          value={`R$ ${totalInvestment.toFixed(2)}`}
+          value={formatCurrency(totalInvestment)}
           description="Total investido"
         />
 
         <StatCard
           title="Conversões"
-          value={totalConversions.toString()}
+          value={formatNumber(totalConversions)}
           description="Conversões realizadas"
         />
 
         <StatCard
           title="Receita"
-          value={`R$ ${totalRevenue.toFixed(2)}`}
+          value={formatCurrency(totalRevenue)}
           description="Receita gerada"
         />
 
         <StatCard
           title="ROAS"
-          value={totalROAS.toFixed(2)}
+          value={formatDecimal(totalROAS)}
           description="Retorno sobre investimento"
         />
 
         <StatCard
           title="CTR"
-          value={`${totalCTR.toFixed(2)}%`}
+          value={formatPercent(totalCTR)}
           description="Taxa de cliques geral"
         />
 
