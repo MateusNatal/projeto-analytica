@@ -140,8 +140,9 @@ function AIInsights({ campaigns, session }: AIInsightsProps) {
       ) : (
         <p className="muted small">
           Ao gerar a análise, os nomes e os números das campanhas exibidas são
-          enviados à OpenAI para processamento. Nenhum outro dado da sua conta
-          é enviado.
+          enviados à Gemini API, do Google, para processamento. No plano
+          gratuito, o Google pode usar esses dados para melhorar os produtos
+          dele. Nenhum outro dado da sua conta é enviado.
           {tooMany &&
             ` Filtre para no máximo ${MAX_CAMPAIGNS} campanhas antes de gerar.`}
         </p>

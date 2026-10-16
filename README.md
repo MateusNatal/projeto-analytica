@@ -95,22 +95,27 @@ O login usa link mágico por e-mail. O serviço de e-mail padrão do Supabase te
 
 ---
 
-## 🤖 Análise com IA (OpenAI)
+## 🤖 Análise com IA (Gemini)
 
-A análise com IA roda só no servidor, na função `api/insights.ts` (Vercel Functions). A chave da OpenAI nunca vai para o navegador.
+A análise com IA roda só no servidor, na função `api/insights.ts` (Vercel Functions), usando o SDK oficial [`@google/genai`](https://www.npmjs.com/package/@google/genai). A chave do Gemini nunca vai para o navegador.
 
 - Exige login no Supabase: o token do usuário é validado no Supabase Auth.
 - Limite diário por usuário (`AI_DAILY_LIMIT`, padrão 20), registrado na tabela `ai_usage` (migração `20261016010000_ai_usage.sql`). O usuário não consegue apagar o próprio histórico de uso.
 - As métricas são recalculadas no servidor; o modelo recebe só nomes e números das campanhas exibidas, e o usuário é avisado disso antes de gerar.
-- A resposta é pedida em JSON estruturado e validada antes de chegar à tela.
+- A resposta é pedida em JSON estruturado (`responseJsonSchema`) e validada antes de chegar à tela.
+- Se a cota do plano gratuito acabar (erro 429 do Google), o usuário vê um aviso específico.
+
+**Modelo padrão:** `gemini-3.5-flash-lite`, estável e com nível gratuito segundo a [página de preços](https://ai.google.dev/gemini-api/docs/pricing) e a [lista de modelos](https://ai.google.dev/gemini-api/docs/models) (consultadas em outubro de 2026). Os limites do plano gratuito por minuto e por dia aparecem no [AI Studio](https://aistudio.google.com/rate-limit).
+
+> ⚠️ **Privacidade no plano gratuito:** segundo a página de preços do Google, os dados enviados no nível gratuito são usados para melhorar os produtos do Google. Por isso o app avisa o usuário antes de gerar a análise. Para dados sensíveis, ative o faturamento no projeto do Google AI Studio.
 
 Configuração na Vercel (**Project Settings → Environment Variables**):
 
 | Variável | Obrigatória | Descrição |
 |---|---|---|
-| `OPENAI_API_KEY` | sim | Chave da OpenAI. **Sem** prefixo `VITE_`. |
-| `OPENAI_MODEL` | não | Modelo usado (padrão `gpt-6-luna`). |
-| `OPENAI_REASONING_EFFORT` | não | `low` por padrão; deixe vazio para modelos que não aceitam o parâmetro. |
+| `GEMINI_API_KEY` | sim | Chave da Gemini API (Google AI Studio → *Get API key*). **Sem** prefixo `VITE_`. |
+| `GEMINI_MODEL` | não | Modelo usado (padrão `gemini-3.5-flash-lite`). |
+| `GEMINI_THINKING_LEVEL` | não | `minimal`, `low` (padrão), `medium` ou `high`; vazio usa o padrão do modelo. O `gemini-3.8-flash` não aceita `minimal`. |
 | `AI_DAILY_LIMIT` | não | Análises por usuário em 24 horas (padrão 20). |
 
 A função também usa `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (ou `SUPABASE_URL` e `SUPABASE_ANON_KEY`) para validar o login.
