@@ -54,6 +54,19 @@ Análise com IA
 - Vite
 - Recharts (gráficos)
 - Papa Parse (leitura de CSV)
+- Supabase (login e histórico) e Gemini API (análise com IA, só no servidor)
+- Fontes Outfit e Inter servidas pelo próprio site (`@fontsource-variable`), sem requisições ao Google Fonts
+
+---
+
+## 🎨 Design
+
+- **Tema escuro por padrão** e tema claro opcional pelo botão no canto superior direito. A escolha fica salva no navegador (`localStorage`) e é aplicada antes da página aparecer, sem piscar.
+- **Tokens de design** em `src/styles/tokens.css` (cores, gradientes, raios, sombras, espaçamentos e tipografia). Os demais estilos ficam em `src/styles/`: `base.css`, `components.css`, `layout.css` e `sections.css`.
+- **Componentes de interface** em `src/components/ui/`: `Button`, `IconTile`, `Badge`, `Alert`, `EmptyState`, `Skeleton`, `ProgressBar`, `Icon` (SVG próprios) e os avisos temporários (`ToastProvider`).
+- **Layout responsivo:** barra lateral no desktop, só ícones no tablet e, no celular, barra superior com a logo e navegação inferior.
+- **Acessibilidade:** contraste conferido (texto ≥ 4,5:1 nos dois temas, inclusive sobre o gradiente dos botões), cores dos gráficos validadas para daltonismo em cada tema, status sempre com ícone e texto, foco visível, link para pular ao conteúdo e respeito a `prefers-reduced-motion`.
+- **Marca:** a logomarca original fica em `assets/brand/`; favicons, ícones e a imagem de compartilhamento em `public/brand/` são gerados a partir dela.
 
 ---
 

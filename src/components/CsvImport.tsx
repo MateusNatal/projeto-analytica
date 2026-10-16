@@ -4,8 +4,10 @@ import type { CSVFormat, CSVImportResult } from "../types/campaign"
 
 import { CSVImportError, parseCampaignCSV } from "../services/csvParser"
 
+import Icon from "./ui/Icon"
+import { Alert, Button, IconTile } from "./ui/primitives"
+
 interface CsvImportProps {
-  dataSource: string
   onImport: (result: CSVImportResult, fileName: string) => void
   onUseSample: () => void
 }
@@ -25,7 +27,7 @@ const SAMPLE_FILES = [
   { href: "/exemplos/google-ads-exemplo.csv", label: "Exemplo Google Ads" },
 ]
 
-function CsvImport({ dataSource, onImport, onUseSample }: CsvImportProps) {
+function CsvImport({ onImport, onUseSample }: CsvImportProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<CSVImportResult | null>(null)
@@ -66,59 +68,68 @@ function CsvImport({ dataSource, onImport, onUseSample }: CsvImportProps) {
   }
 
   return (
-    <section className="panel csv-import">
+    <section className="panel csv-import" aria-labelledby="csv-import-title">
       <div className="panel-header">
-        <div>
-          <h2>Seus dados</h2>
-          <p className="muted">
-            Fonte atual: <strong>{dataSource}</strong>
-          </p>
+        <div className="section-title">
+          <IconTile name="upload" />
+          <div>
+            <h2 id="csv-import-title">Importar campanhas</h2>
+            <p className="muted small">
+              Exportações do Meta Ads, do Google Ads ou o modelo da Analytica.
+            </p>
+          </div>
         </div>
 
         <div className="csv-import-actions">
-          <label className="button button-primary">
+          <label
+            className="button button-primary"
+            aria-disabled={loading || undefined}
+          >
+            {loading ? (
+              <span className="spinner" aria-hidden="true" />
+            ) : (
+              <Icon name="upload" />
+            )}
             {loading ? "Importando…" : "Importar CSV"}
             <input
               type="file"
               accept=".csv,.tsv,.txt,text/csv"
               onChange={handleFileChange}
               disabled={loading}
-              hidden
+              className="visually-hidden"
             />
           </label>
 
-          <button
-            type="button"
-            className="button"
-            onClick={handleUseSample}
-          >
+          <Button onClick={handleUseSample} disabled={loading}>
             Usar dados de exemplo
-          </button>
+          </Button>
         </div>
       </div>
 
-      <p className="muted small">
-        Aceita exportações do Meta Ads e do Google Ads ou o modelo da
-        Analytica. Os dados são lidos no seu navegador e não são enviados para
-        nenhum servidor. Baixe um exemplo:{" "}
-        {SAMPLE_FILES.map((sample, index) => (
-          <span key={sample.href}>
-            {index > 0 && " · "}
-            <a href={sample.href} download>
-              {sample.label}
-            </a>
-          </span>
-        ))}
+      <p className="privacy-note">
+        <Icon name="shield" />
+        Os arquivos são lidos no seu navegador e não são enviados para nenhum
+        servidor.
       </p>
 
-      {error && (
-        <div className="alert alert-error" role="alert">
-          {error}
-        </div>
-      )}
+      <div className="sample-links" aria-label="Arquivos de exemplo">
+        {SAMPLE_FILES.map((sample) => (
+          <a
+            key={sample.href}
+            className="sample-link"
+            href={sample.href}
+            download
+          >
+            <Icon name="download" />
+            {sample.label}
+          </a>
+        ))}
+      </div>
+
+      {error && <Alert tone="error">{error}</Alert>}
 
       {result && (
-        <div className="alert alert-success" role="status">
+        <Alert tone="success">
           <p>
             <strong>{result.campaigns.length} campanha(s) importada(s)</strong>{" "}
             ({FORMAT_LABELS[result.format]}, {result.rowsRead} linha(s) lida(s)
@@ -155,7 +166,7 @@ function CsvImport({ dataSource, onImport, onUseSample }: CsvImportProps) {
               </ul>
             </>
           )}
-        </div>
+        </Alert>
       )}
     </section>
   )

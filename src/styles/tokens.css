@@ -1,0 +1,133 @@
+/*
+ * Tokens de design da Analytica.
+ *
+ * O tema escuro é o padrão. O tema claro é ativado com data-theme="light" no
+ * elemento <html> (ver useTheme e o script no index.html).
+ *
+ * Contraste conferido (WCAG):
+ * - texto principal e secundário >= 6:1 sobre os cartões nos dois temas;
+ * - texto suave >= 5:1;
+ * - texto branco >= 4,7:1 em todo o gradiente de ação (botões).
+ * Cores dos gráficos validadas para daltonismo e contraste em cada tema.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Fundo e superfícies */
+  --bg: #050a18;
+  --bg-glow-1: rgba(22, 187, 255, 0.10);
+  --bg-glow-2: rgba(163, 43, 255, 0.10);
+  --surface: linear-gradient(145deg, #133155 0%, #16203b 55%, #161e33 100%);
+  --surface-solid: #16203b;
+  --surface-2: #274158;
+  --surface-2-hover: #305070;
+  --surface-input: #0f1a33;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: #274158;
+  --hover: rgba(255, 255, 255, 0.05);
+  --overlay: rgba(2, 6, 18, 0.6);
+
+  /* Barra lateral: mesma cor do fundo da logomarca, nos dois temas */
+  --sidebar-bg: #020a1e;
+  --sidebar-text: #b4bfd8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+
+  /* Texto */
+  --text: #f4f6ff;
+  --text-2: #b4bfd8;
+  --text-3: #9aa6c2;
+  --text-on-accent: #ffffff;
+  --link: #3cc4ff;
+  --focus: #3cc4ff;
+
+  /* Marca */
+  --brand-cyan: #16bbff;
+  --brand-blue: #4987fe;
+  --brand-violet: #a32bff;
+  --brand-magenta: #fa50fc;
+  /* Decorativo (sem texto por cima): ícones, barras de progresso, detalhes */
+  --gradient-brand: linear-gradient(90deg, #16bbff 0%, #6d5ed5 55%, #a32bff 100%);
+  --gradient-brand-diagonal: linear-gradient(135deg, #16bbff 0%, #6d5ed5 50%, #a32bff 100%);
+  /* Botões: versão mais profunda do mesmo gradiente, legível com texto branco */
+  --gradient-action: linear-gradient(90deg, #0779b8 0%, #5a4fd1 50%, #8a2be2 100%);
+  --glow-action: 0 8px 24px -8px rgba(110, 94, 213, 0.7);
+
+  /* Status (sempre acompanhados de ícone e texto) */
+  --status-good: #25bd84;
+  --status-warning: #fab219;
+  --status-critical: #f05a5a;
+  --status-info: #4987fe;
+  --status-good-text: #4fd6a1;
+
+  /* Gráficos */
+  --series-1: #0f9fe0;
+  --series-2: #a32bff;
+  --grid: rgba(255, 255, 255, 0.07);
+  --axis: #3a4c68;
+  --chart-text: #b4bfd8;
+
+  /* Formas */
+  --radius-xl: 28px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 24px 48px -32px rgba(0, 0, 0, 0.8);
+  --shadow-float: 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+
+  /* Espaçamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Tipografia */
+  --font-display: "Outfit Variable", "Outfit", system-ui, sans-serif;
+  --font-body: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+
+  /* Layout */
+  --sidebar-width: 256px;
+  --rail-width: 84px;
+  --topbar-height: 64px;
+  --bottom-nav-height: 76px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #eef2fb;
+  --bg-glow-1: rgba(22, 187, 255, 0.12);
+  --bg-glow-2: rgba(163, 43, 255, 0.08);
+  --surface: linear-gradient(145deg, #ffffff 0%, #f8faff 100%);
+  --surface-solid: #ffffff;
+  --surface-2: #e7ecf7;
+  --surface-2-hover: #dbe2f1;
+  --surface-input: #ffffff;
+  --border: rgba(11, 21, 48, 0.08);
+  --border-strong: #d3dbeb;
+  --hover: rgba(11, 21, 48, 0.04);
+  --overlay: rgba(11, 21, 48, 0.35);
+
+  --text: #0b1530;
+  --text-2: #45506d;
+  --text-3: #5b6683;
+  --link: #0b6fae;
+  --focus: #0b6fae;
+
+  --status-good-text: #0b7d55;
+
+  --series-1: #1592d6;
+  --series-2: #8a2be2;
+  --grid: #e6eaf3;
+  --axis: #c5cddf;
+  --chart-text: #45506d;
+
+  --shadow-card: 0 16px 36px -24px rgba(20, 40, 90, 0.35);
+  --shadow-float: 0 16px 40px -16px rgba(20, 40, 90, 0.35);
+}

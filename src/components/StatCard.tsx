@@ -1,8 +1,12 @@
+import type { IconName } from "./ui/Icon"
+import { IconTile } from "./ui/primitives"
+
 interface StatCardProps {
   title: string
   value: string
   description: string
   hint?: string
+  icon?: IconName
 }
 
 function StatCard({
@@ -10,10 +14,14 @@ function StatCard({
   value,
   description,
   hint,
+  icon,
 }: StatCardProps) {
   return (
     <div className="stat-card">
-      <span className="stat-title">{title}</span>
+      <div className="stat-card-top">
+        {icon && <IconTile name={icon} size="sm" />}
+        <span className="stat-title">{title}</span>
+      </div>
 
       <strong className="stat-value">{value}</strong>
 

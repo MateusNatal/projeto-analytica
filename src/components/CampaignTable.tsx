@@ -8,16 +8,26 @@ import {
 } from "../utils/formatters"
 import { calculateCampaignMetrics } from "../utils/metrics"
 
+import { IconTile } from "./ui/primitives"
+
 interface CampaignTableProps {
   campaigns: Campaign[]
 }
 
 function CampaignTable({ campaigns }: CampaignTableProps) {
   return (
-    <section className="panel">
-      <h2>Campanhas</h2>
+    <section className="panel" aria-labelledby="table-title">
+      <div className="section-title">
+        <IconTile name="table" />
+        <div>
+          <h2 id="table-title">Todas as campanhas</h2>
+          <p className="muted small">
+            Números de cada campanha. Role para o lado para ver todas as colunas.
+          </p>
+        </div>
+      </div>
 
-      <div className="table-wrapper">
+      <div className="table-wrapper" role="region" tabIndex={0} aria-labelledby="table-title">
         <table>
           <thead>
             <tr>

@@ -5,6 +5,9 @@ import type { Campaign } from "../types/campaign"
 
 import { isSupabaseConfigured } from "../services/supabaseClient"
 
+import Icon from "./ui/Icon"
+import { Alert, Button, EmptyState, IconTile, Skeleton } from "./ui/primitives"
+
 interface AIInsightsProps {
   campaigns: Campaign[]
   session: Session | null
@@ -68,15 +71,27 @@ async function requestAnalysis(
 function AIInsights({ campaigns, session }: AIInsightsProps) {
   const [status, setStatus] = useState<Status>({ kind: "idle" })
 
+  const header = (
+    <div className="section-title">
+      <IconTile name="sparkles" />
+      <div>
+        <h2 id="ai-title">Análise com IA</h2>
+        <p className="muted small">
+          Uma explicação em linguagem simples, com recomendações para as
+          campanhas exibidas.
+        </p>
+      </div>
+    </div>
+  )
+
   if (!isSupabaseConfigured) {
     return (
-      <section className="panel panel-muted">
-        <h2>Análise com IA</h2>
+      <section className="panel" aria-labelledby="ai-title">
+        {header}
 
-        <p className="muted">
-          Explicações e recomendações geradas por inteligência artificial
-          ficam disponíveis quando o login estiver configurado.
-        </p>
+        <EmptyState icon="sparkles" title="Disponível em breve">
+          A análise com IA fica disponível quando o login estiver configurado.
+        </EmptyState>
       </section>
     )
   }
@@ -105,23 +120,16 @@ function AIInsights({ campaigns, session }: AIInsightsProps) {
   }
 
   return (
-    <section className="panel">
+    <section className="panel" aria-labelledby="ai-title">
       <div className="panel-header">
-        <div>
-          <h2>Análise com IA</h2>
-          <p className="muted small">
-            Uma explicação em linguagem simples, com recomendações para as
-            campanhas exibidas.
-          </p>
-        </div>
+        {header}
 
         {session && (
-          <button
-            type="button"
-            className="button button-primary"
-            disabled={
-              status.kind === "loading" || campaigns.length === 0 || tooMany
-            }
+          <Button
+            variant="primary"
+            icon="sparkles"
+            loading={status.kind === "loading"}
+            disabled={campaigns.length === 0 || tooMany}
             onClick={handleGenerate}
           >
             {status.kind === "loading"
@@ -129,62 +137,72 @@ function AIInsights({ campaigns, session }: AIInsightsProps) {
               : status.kind === "done"
                 ? "Gerar de novo"
                 : "Gerar análise com IA"}
-          </button>
+          </Button>
         )}
       </div>
 
       {!session ? (
-        <p className="empty-state">
-          Entre na sua conta para gerar uma análise com IA.
-        </p>
+        <EmptyState icon="user" title="Entre para usar a análise com IA">
+          Faça login na seção “Dados”, no topo da página, para gerar
+          explicações e recomendações das suas campanhas.
+        </EmptyState>
       ) : (
-        <p className="muted small">
-          Ao gerar a análise, os nomes e os números das campanhas exibidas são
-          enviados à Gemini API, do Google, para processamento. No plano
-          gratuito, o Google pode usar esses dados para melhorar os produtos
-          dele. Nenhum outro dado da sua conta é enviado.
-          {tooMany &&
-            ` Filtre para no máximo ${MAX_CAMPAIGNS} campanhas antes de gerar.`}
+        <p className="privacy-note">
+          <Icon name="shield" />
+          <span>
+            Ao gerar a análise, os nomes e os números das campanhas exibidas são
+            enviados à Gemini API, do Google, para processamento. No plano
+            gratuito, o Google pode usar esses dados para melhorar os produtos
+            dele. Nenhum outro dado da sua conta é enviado.
+            {tooMany &&
+              ` Filtre para no máximo ${MAX_CAMPAIGNS} campanhas antes de gerar.`}
+          </span>
         </p>
       )}
 
-      {status.kind === "error" && (
-        <div className="alert alert-error" role="alert">
-          {status.message}
-        </div>
+      {status.kind === "loading" && (
+        <Skeleton lines={4} block label="Gerando análise com IA…" />
       )}
+
+      {status.kind === "error" && <Alert tone="error">{status.message}</Alert>}
 
       {status.kind === "done" && (
         <div className="ai-result" aria-live="polite">
-          <p>{status.analysis.summary}</p>
+          <p className="ai-summary">{status.analysis.summary}</p>
 
-          {status.analysis.highlights.length > 0 && (
-            <>
-              <h3>O que chama atenção</h3>
-              <ul>
-                {status.analysis.highlights.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </>
-          )}
+          <div className="ai-columns">
+            {status.analysis.highlights.length > 0 && (
+              <div>
+                <h3>O que chama atenção</h3>
+                <ul>
+                  {status.analysis.highlights.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          {status.analysis.recommendations.length > 0 && (
-            <>
-              <h3>O que fazer agora</h3>
-              <ul>
-                {status.analysis.recommendations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </>
-          )}
+            {status.analysis.recommendations.length > 0 && (
+              <div>
+                <h3>O que fazer agora</h3>
+                <ul>
+                  {status.analysis.recommendations.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
 
-          <p className="muted small">
-            {status.analysis.caveat ||
-              "Análise gerada por IA: confira os números antes de tomar decisões."}{" "}
-            Restam {status.remaining} análise(s) nas próximas 24 horas.
-          </p>
+          <div className="ai-footer">
+            <span>
+              {status.analysis.caveat ||
+                "Análise gerada por IA: confira os números antes de tomar decisões."}
+            </span>
+            <span className="tabular">
+              Restam {status.remaining} análise(s) nas próximas 24 horas.
+            </span>
+          </div>
         </div>
       )}
     </section>

@@ -19,6 +19,8 @@ import {
 } from "../utils/formatters"
 import { calculateROAS } from "../utils/metrics"
 
+import { EmptyState, IconTile } from "./ui/primitives"
+
 interface CampaignChartProps {
   campaigns: Campaign[]
 }
@@ -26,7 +28,7 @@ interface CampaignChartProps {
 const MAX_LABEL_LENGTH = 22
 const BAR_SIZE = 20
 
-const axisTick = { fill: "var(--text-secondary)", fontSize: 12 }
+const axisTick = { fill: "var(--chart-text)", fontSize: 12 }
 
 function truncate(label: string): string {
   return label.length > MAX_LABEL_LENGTH
@@ -48,13 +50,14 @@ function chartHeight(rows: number, rowHeight: number): number {
 
 const tooltipStyle = {
   contentStyle: {
-    background: "var(--surface-raised)",
-    border: "1px solid var(--border)",
-    borderRadius: 8,
-    color: "var(--text-primary)",
+    background: "var(--surface-solid)",
+    border: "1px solid var(--border-strong)",
+    borderRadius: 12,
+    color: "var(--text)",
+    boxShadow: "var(--shadow-float)",
   },
-  labelStyle: { color: "var(--text-primary)", fontWeight: 600 },
-  itemStyle: { color: "var(--text-primary)" },
+  labelStyle: { color: "var(--text)", fontWeight: 600 },
+  itemStyle: { color: "var(--text)" },
   cursor: { fill: "var(--hover)" },
 }
 
@@ -77,8 +80,16 @@ function CampaignChart({ campaigns }: CampaignChartProps) {
   const hasRevenue = campaigns.some((campaign) => campaign.revenue > 0)
 
   return (
-    <section className="panel charts">
-      <h2>Comparação entre campanhas</h2>
+    <section className="panel charts" aria-labelledby="charts-title">
+      <div className="section-title">
+        <IconTile name="chart" />
+        <div>
+          <h2 id="charts-title">Comparação entre campanhas</h2>
+          <p className="muted small">
+            Passe o mouse ou toque nas barras para ver os valores exatos.
+          </p>
+        </div>
+      </div>
 
       <div className="chart-grid">
         <figure className="chart">
@@ -195,12 +206,12 @@ function CampaignChart({ campaigns }: CampaignChartProps) {
 
                 <ReferenceLine
                   x={1}
-                  stroke="var(--text-secondary)"
+                  stroke="var(--chart-text)"
                   strokeDasharray="4 4"
                   label={{
                     value: "1x",
                     position: "top",
-                    fill: "var(--text-secondary)",
+                    fill: "var(--chart-text)",
                     fontSize: 12,
                   }}
                 />
@@ -215,9 +226,9 @@ function CampaignChart({ campaigns }: CampaignChartProps) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="empty-state">
-              Sem dados de receita para calcular o ROAS.
-            </p>
+            <EmptyState icon="target" title="Sem dados de receita">
+              Inclua a receita no arquivo para calcular o ROAS.
+            </EmptyState>
           )}
         </figure>
 

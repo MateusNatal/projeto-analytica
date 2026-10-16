@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Analytica</title>
+
+    <!-- Aplica o tema salvo antes de desenhar a página (padrão: escuro) -->
+    <script>
+      try {
+        if (localStorage.getItem("analytica-theme") === "light") {
+          document.documentElement.dataset.theme = "light"
+        }
+      } catch (error) {}
+    </script>
     <meta name="description" content="Análise de campanhas de marketing digital explicada de forma simples." />
 
     <!-- Ícones (gerados a partir de assets/brand/analytica-logo-source.png) -->

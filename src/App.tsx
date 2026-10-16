@@ -1,9 +1,12 @@
-import "./App.css"
-
 import Dashboard from "./pages/Dashboard"
+import ToastProvider from "./components/ui/ToastProvider"
 
 function App() {
-  return <Dashboard />
+  return (
+    <ToastProvider>
+      <Dashboard />
+    </ToastProvider>
+  )
 }
 
 export default App

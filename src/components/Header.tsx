@@ -1,24 +1,24 @@
-function Header() {
-  return (
-    <header className="app-header">
-      <div className="brand">
-        <img
-          className="brand-mark"
-          src="/brand/analytica-icon-256.png"
-          alt=""
-          width={48}
-          height={48}
-        />
+import Icon from "./ui/Icon"
 
-        <div>
-          <h1 className="brand-name">Analytica</h1>
-          <p className="brand-tagline">Dados que geram resultados</p>
-        </div>
+interface HeaderProps {
+  dataSource: string
+}
+
+function Header({ dataSource }: HeaderProps) {
+  return (
+    <header className="page-header">
+      <div>
+        <h1>Painel de campanhas</h1>
+        <p>
+          Entenda suas campanhas de marketing digital sem precisar ser
+          especialista.
+        </p>
       </div>
 
-      <p className="app-header-description">
-        Entenda suas campanhas de marketing digital sem precisar ser especialista.
-      </p>
+      <span className="source-chip" title={dataSource}>
+        <Icon name="file" />
+        Fonte: <strong>{dataSource}</strong>
+      </span>
     </header>
   )
 }

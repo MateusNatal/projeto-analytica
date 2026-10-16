@@ -29,6 +29,9 @@ import PerformanceCard from "../components/PerformanceCard"
 import AIInsights from "../components/AIInsights"
 import CsvImport from "../components/CsvImport"
 import RuleInsights from "../components/RuleInsights"
+import Sidebar from "../components/Sidebar"
+import ThemeToggle from "../components/ThemeToggle"
+import { IconTile, Skeleton } from "../components/ui/primitives"
 import AccountPanel from "../components/AccountPanel"
 import SavedDatasets from "../components/SavedDatasets"
 
@@ -84,119 +87,160 @@ function Dashboard() {
   const insights = generateInsights(filteredCampaigns)
 
   return (
-    <main className="app">
+    <div className="shell">
+      <a className="skip-link" href="#conteudo">
+        Pular para o conteúdo
+      </a>
 
-      <Header />
+      <Sidebar />
 
-      <CsvImport
-        dataSource={dataSource}
-        onImport={handleImport}
-        onUseSample={() =>
-          loadCampaigns(sampleCampaigns, SAMPLE_SOURCE, "sample")
-        }
-      />
+      <ThemeToggle />
 
-      <AccountPanel session={session} loading={authLoading} />
+      <main className="main" id="conteudo" tabIndex={-1}>
+        <div className="main-inner">
 
-      {supabase && session && (
-        <SavedDatasets
-          client={supabase}
-          userId={session.user.id}
-          campaigns={campaigns}
-          dataSource={dataSource}
-          dataFormat={dataFormat}
-          alreadySaved={alreadySaved}
-          onLoad={(loaded, dataset) =>
-            loadCampaigns(loaded, dataset.name, dataset.sourceFormat, true)
-          }
-          onSaved={() => setAlreadySaved(true)}
-        />
-      )}
+          <Header dataSource={dataSource} />
 
-      <section className="filters" aria-label="Filtros">
+          <div className="page-section" id="dados">
+            <div className="data-grid">
+              <CsvImport
+                onImport={handleImport}
+                onUseSample={() =>
+                  loadCampaigns(sampleCampaigns, SAMPLE_SOURCE, "sample")
+                }
+              />
 
-        <label className="field">
-          Plataforma
+              <div className="stack">
+                <AccountPanel session={session} loading={authLoading} />
 
-          <select
-            value={activePlatform}
-            onChange={(event) =>
-              setSelectedPlatform(event.target.value)
-            }
-          >
-            <option value={ALL_PLATFORMS}>{ALL_PLATFORMS}</option>
-            {platforms.map((platform) => (
-              <option key={platform} value={platform}>
-                {platform}
-              </option>
-            ))}
-          </select>
-        </label>
+                {supabase && session && (
+                  <SavedDatasets
+                    client={supabase}
+                    userId={session.user.id}
+                    campaigns={campaigns}
+                    dataSource={dataSource}
+                    dataFormat={dataFormat}
+                    alreadySaved={alreadySaved}
+                    onLoad={(loaded, dataset) =>
+                      loadCampaigns(loaded, dataset.name, dataset.sourceFormat, true)
+                    }
+                    onSaved={() => setAlreadySaved(true)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
 
-        <span className="muted small">
-          {filteredCampaigns.length} campanha(s) exibida(s)
-        </span>
+          <div className="page-section" id="visao-geral">
+            <section className="panel" aria-labelledby="overview-title">
+              <div className="filters">
+                <div className="section-title">
+                  <IconTile name="overview" />
+                  <div>
+                    <h2 id="overview-title">Visão geral</h2>
+                    <p className="filters-count">
+                      {filteredCampaigns.length} campanha(s) exibida(s)
+                    </p>
+                  </div>
+                </div>
 
-      </section>
+                <label className="field">
+                  Plataforma
 
+                  <select
+                    value={activePlatform}
+                    onChange={(event) =>
+                      setSelectedPlatform(event.target.value)
+                    }
+                  >
+                    <option value={ALL_PLATFORMS}>{ALL_PLATFORMS}</option>
+                    {platforms.map((platform) => (
+                      <option key={platform} value={platform}>
+                        {platform}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
 
-      <section className="stat-grid" aria-label="Resumo">
+            <section className="stat-grid" aria-label="Resumo">
 
-        <StatCard
-          title="Investimento"
-          value={formatCurrency(total.investment)}
-          description="Total investido"
-          hint={METRIC_GLOSSARY.investment.explanation}
-        />
+              <StatCard
+                title="Investimento"
+                icon="wallet"
+                value={formatCurrency(total.investment)}
+                description="Total investido"
+                hint={METRIC_GLOSSARY.investment.explanation}
+              />
 
-        <StatCard
-          title="Receita"
-          value={formatCurrency(total.revenue)}
-          description="Receita gerada"
-          hint={METRIC_GLOSSARY.revenue.reading}
-        />
+              <StatCard
+                title="Receita"
+                icon="trendingUp"
+                value={formatCurrency(total.revenue)}
+                description="Receita gerada"
+                hint={METRIC_GLOSSARY.revenue.reading}
+              />
 
-        <StatCard
-          title="ROAS"
-          value={formatMultiplier(totalMetrics.roas)}
-          description="Receita para cada R$ 1 investido"
-          hint={METRIC_GLOSSARY.roas.reading}
-        />
+              <StatCard
+                title="ROAS"
+                icon="target"
+                value={formatMultiplier(totalMetrics.roas)}
+                description="Receita para cada R$ 1 investido"
+                hint={METRIC_GLOSSARY.roas.reading}
+              />
 
-        <StatCard
-          title="Conversões"
-          value={formatNumber(total.conversions)}
-          description="Conversões realizadas"
-          hint={METRIC_GLOSSARY.conversions.explanation}
-        />
+              <StatCard
+                title="Conversões"
+                icon="checkCircle"
+                value={formatNumber(total.conversions)}
+                description="Conversões realizadas"
+                hint={METRIC_GLOSSARY.conversions.explanation}
+              />
 
-        <StatCard
-          title="CTR"
-          value={formatPercent(totalMetrics.ctr)}
-          description="Taxa de cliques geral"
-          hint={METRIC_GLOSSARY.ctr.explanation}
-        />
+              <StatCard
+                title="CTR"
+                icon="pointer"
+                value={formatPercent(totalMetrics.ctr)}
+                description="Taxa de cliques geral"
+                hint={METRIC_GLOSSARY.ctr.explanation}
+              />
 
-      </section>
+            </section>
+          </div>
 
-      <RuleInsights insights={insights} />
+          <div className="page-section" id="insights">
+            <RuleInsights insights={insights} />
+          </div>
 
-      <Suspense
-        fallback={<section className="panel muted">Carregando gráficos…</section>}
-      >
-        <CampaignChart campaigns={filteredCampaigns} />
-      </Suspense>
+          <div className="page-section" id="graficos">
+            <Suspense
+              fallback={
+                <section className="panel">
+                  <Skeleton lines={2} block label="Carregando gráficos…" />
+                </section>
+              }
+            >
+              <CampaignChart campaigns={filteredCampaigns} />
+            </Suspense>
+          </div>
 
-      <PerformanceCard
-        key={dataSource}
-        campaigns={filteredCampaigns}
-      />
+          <div className="page-section" id="campanhas">
+            <PerformanceCard
+              key={dataSource}
+              campaigns={filteredCampaigns}
+            />
 
-      <CampaignTable campaigns={filteredCampaigns} />
+            <CampaignTable campaigns={filteredCampaigns} />
+          </div>
 
-      <AIInsights campaigns={filteredCampaigns} session={session} />
+          <div className="page-section" id="analise-ia">
+            <AIInsights campaigns={filteredCampaigns} session={session} />
+          </div>
 
-    </main>
+        </div>
+      </main>
+    </div>
   )
 }
 

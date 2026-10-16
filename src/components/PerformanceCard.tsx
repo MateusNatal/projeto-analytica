@@ -3,12 +3,15 @@ import { useState } from "react"
 import type { Campaign } from "../types/campaign"
 
 import { calculateCampaignMetrics } from "../utils/metrics"
+import { calculateTotalInvestment } from "../utils/dashboardMetrics"
 import {
   formatCurrency,
   formatMultiplier,
   formatPercent,
 } from "../utils/formatters"
 import { METRIC_GLOSSARY, type MetricKey } from "../utils/metricGlossary"
+
+import { EmptyState, IconTile, ProgressBar } from "./ui/primitives"
 
 interface PerformanceCardProps {
   campaigns: Campaign[]
@@ -28,16 +31,19 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
   if (!campaign) {
     return (
       <section className="panel">
-        <h2>Performance</h2>
+        <h2>Performance por campanha</h2>
 
-        <p className="empty-state">
-          Nenhuma campanha disponível para o filtro selecionado.
-        </p>
+        <EmptyState icon="target" title="Nenhuma campanha disponível">
+          Não há campanhas para o filtro selecionado.
+        </EmptyState>
       </section>
     )
   }
 
   const metrics = calculateCampaignMetrics(campaign)
+  const totalInvestment = calculateTotalInvestment(campaigns)
+  const share =
+    totalInvestment > 0 ? (campaign.investment / totalInvestment) * 100 : 0
 
   const items: { key: MetricKey; value: string }[] = [
     { key: "ctr", value: formatPercent(metrics.ctr) },
@@ -48,10 +54,18 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
   ]
 
   return (
-    <section className="panel">
+    <section className="panel" aria-labelledby="performance-title">
 
       <div className="panel-header">
-        <h2>Performance por campanha</h2>
+        <div className="section-title">
+          <IconTile name="target" />
+          <div>
+            <h2 id="performance-title">Performance por campanha</h2>
+            <p className="muted small">
+              {campaign.name} · {campaign.platform}
+            </p>
+          </div>
+        </div>
 
         <label className="field">
           Campanha
@@ -74,9 +88,11 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
         </label>
       </div>
 
-      <p className="muted">
-        Campanha analisada: <strong>{campaign.name}</strong> ({campaign.platform})
-      </p>
+      <ProgressBar
+        label="Participação no investimento total"
+        value={share}
+        valueLabel={formatPercent(share)}
+      />
 
       <dl className="metric-list">
         {items.map(({ key, value }) => {
@@ -94,7 +110,7 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
               <dd>
                 <strong className="metric-value">{value}</strong>
                 <span>{definition.explanation}</span>
-                <span className="muted small">{definition.reading}</span>
+                <span className="muted">{definition.reading}</span>
               </dd>
             </div>
           )

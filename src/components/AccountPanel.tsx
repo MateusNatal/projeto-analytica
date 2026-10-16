@@ -3,6 +3,8 @@ import type { Session } from "@supabase/supabase-js"
 
 import { supabase } from "../services/supabaseClient"
 
+import { Alert, Button, IconTile, Skeleton } from "./ui/primitives"
+
 interface AccountPanelProps {
   session: Session | null
   loading: boolean
@@ -62,44 +64,50 @@ function AccountPanel({ session, loading }: AccountPanelProps) {
 
   if (loading) {
     return (
-      <section className="panel account">
-        <p className="muted small">Verificando login…</p>
+      <section className="panel account" aria-label="Conta">
+        <Skeleton lines={2} label="Verificando login…" />
       </section>
     )
   }
 
   if (session) {
     return (
-      <section className="panel account">
-        <div className="panel-header">
-          <p className="small">
-            Conectado como <strong>{session.user.email}</strong>
-          </p>
+      <section className="panel account" aria-label="Conta">
+        <div className="account-row">
+          <div className="account-user">
+            <IconTile name="user" size="sm" />
+            <div>
+              <span className="muted small">Conectado como</span>
+              <strong>{session.user.email}</strong>
+            </div>
+          </div>
 
-          <button type="button" className="button" onClick={handleSignOut}>
+          <Button size="sm" variant="ghost" icon="logout" onClick={handleSignOut}>
             Sair
-          </button>
+          </Button>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="panel account">
-      <div>
-        <h2>Entrar</h2>
-        <p className="muted small">
-          Opcional. Com login, você pode salvar os arquivos importados e
-          consultá-los depois. Enviamos um link de acesso para o seu e-mail,
-          sem senha.
-        </p>
+    <section className="panel account" aria-labelledby="account-title">
+      <div className="section-title">
+        <IconTile name="user" />
+        <div>
+          <h2 id="account-title">Entrar</h2>
+          <p className="muted small">
+            Opcional. Com login, você salva os arquivos importados e usa a
+            análise com IA. Enviamos um link de acesso, sem senha.
+          </p>
+        </div>
       </div>
 
       {status.kind === "sent" ? (
-        <div className="alert alert-success" role="status">
+        <Alert tone="success">
           Enviamos um link para <strong>{status.email}</strong>. Abra o e-mail
           neste navegador para entrar.
-        </div>
+        </Alert>
       ) : (
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="field">
@@ -114,21 +122,18 @@ function AccountPanel({ session, loading }: AccountPanelProps) {
             />
           </label>
 
-          <button
+          <Button
             type="submit"
-            className="button button-primary"
-            disabled={status.kind === "sending"}
+            variant="primary"
+            icon="mail"
+            loading={status.kind === "sending"}
           >
             {status.kind === "sending" ? "Enviando…" : "Enviar link de acesso"}
-          </button>
+          </Button>
         </form>
       )}
 
-      {status.kind === "error" && (
-        <div className="alert alert-error" role="alert">
-          {status.message}
-        </div>
-      )}
+      {status.kind === "error" && <Alert tone="error">{status.message}</Alert>}
     </section>
   )
 }

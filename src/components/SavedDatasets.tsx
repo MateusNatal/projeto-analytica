@@ -13,6 +13,9 @@ import {
   type SavedDataset,
 } from "../services/datasetService"
 
+import { Alert, Button, EmptyState, IconTile, Skeleton } from "./ui/primitives"
+import { useToast } from "./ui/toastContext"
+
 interface SavedDatasetsProps {
   client: SupabaseClient
   userId: string
@@ -35,6 +38,9 @@ function errorMessage(caught: unknown): string {
     : "Algo deu errado. Tente novamente."
 }
 
+// Ação em andamento, para mostrar o carregamento no botão certo.
+type BusyAction = "save" | `open:${string}` | `delete:${string}` | null
+
 function SavedDatasets({
   client,
   userId,
@@ -45,11 +51,11 @@ function SavedDatasets({
   onLoad,
   onSaved,
 }: SavedDatasetsProps) {
+  const toast = useToast()
   const [datasets, setDatasets] = useState<SavedDataset[]>([])
   const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<BusyAction>(null)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(
     null
   )
@@ -84,17 +90,18 @@ function SavedDatasets({
     }
   }, [client, userId])
 
-  async function run(action: () => Promise<void>) {
-    setBusy(true)
+  async function run(action: BusyAction, task: () => Promise<void>) {
+    setBusy(action)
     setError(null)
-    setNotice(null)
 
     try {
-      await action()
+      await task()
     } catch (caught) {
-      setError(errorMessage(caught))
+      const message = errorMessage(caught)
+      setError(message)
+      toast.show(message, "error")
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -109,117 +116,120 @@ function SavedDatasets({
         : undefined
 
   return (
-    <section className="panel">
+    <section className="panel" aria-labelledby="saved-title">
       <div className="panel-header">
-        <div>
-          <h2>Meus arquivos salvos</h2>
-          <p className="muted small">
-            Ficam guardados na sua conta e só você tem acesso.
-          </p>
+        <div className="section-title">
+          <IconTile name="folder" />
+          <div>
+            <h2 id="saved-title">Meus arquivos salvos</h2>
+            <p className="muted small">
+              Ficam guardados na sua conta e só você tem acesso.
+            </p>
+          </div>
         </div>
 
-        <button
-          type="button"
-          className="button button-primary"
-          disabled={!canSave || busy}
+        <Button
+          variant="primary"
+          icon="save"
+          disabled={!canSave || busy !== null}
+          loading={busy === "save"}
           title={saveHint}
           onClick={() =>
-            run(async () => {
+            run("save", async () => {
               await saveDataset(client, dataSource, dataFormat, campaigns)
-              setNotice(`"${dataSource}" foi salvo.`)
+              toast.show(`"${dataSource}" foi salvo.`)
               onSaved()
               await refresh()
             })
           }
         >
           Salvar arquivo atual
-        </button>
+        </Button>
       </div>
 
-      {notice && (
-        <div className="alert alert-success" role="status">
-          {notice}
-        </div>
-      )}
+      {saveHint && <p className="muted small">{saveHint}</p>}
 
-      {error && (
-        <div className="alert alert-error" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       {loading ? (
-        <p className="muted small">Carregando…</p>
+        <Skeleton lines={3} label="Carregando arquivos salvos…" />
       ) : datasets.length === 0 ? (
-        <p className="empty-state">
-          Nenhum arquivo salvo ainda. Importe um CSV e clique em “Salvar
-          arquivo atual”.
-        </p>
+        <EmptyState icon="folder" title="Nenhum arquivo salvo ainda">
+          Importe um CSV e clique em “Salvar arquivo atual”.
+        </EmptyState>
       ) : (
         <ul className="dataset-list">
           {datasets.map((dataset) => (
             <li key={dataset.id} className="dataset">
-              <div>
-                <strong>{dataset.name}</strong>
-                <p className="muted small">
-                  {dataset.campaignCount} campanha(s) · salvo em{" "}
-                  {dateFormatter.format(new Date(dataset.createdAt))}
-                </p>
+              <div className="dataset-info">
+                <IconTile name="file" size="sm" />
+                <div>
+                  <strong title={dataset.name}>{dataset.name}</strong>
+                  <p className="muted small">
+                    {dataset.campaignCount} campanha(s) · salvo em{" "}
+                    {dateFormatter.format(new Date(dataset.createdAt))}
+                  </p>
+                </div>
               </div>
 
               <div className="dataset-actions">
-                <button
-                  type="button"
-                  className="button"
-                  disabled={busy}
+                <Button
+                  size="sm"
+                  icon="open"
+                  disabled={busy !== null}
+                  loading={busy === `open:${dataset.id}`}
                   onClick={() =>
-                    run(async () => {
+                    run(`open:${dataset.id}`, async () => {
                       const loaded = await loadDatasetCampaigns(
                         client,
                         dataset.id
                       )
                       onLoad(loaded, dataset)
+                      toast.show(`"${dataset.name}" aberto.`)
                     })
                   }
                 >
                   Abrir
-                </button>
+                </Button>
 
                 {confirmingDelete === dataset.id ? (
                   <>
-                    <button
-                      type="button"
-                      className="button button-danger"
-                      disabled={busy}
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      icon="trash"
+                      disabled={busy !== null}
+                      loading={busy === `delete:${dataset.id}`}
                       onClick={() =>
-                        run(async () => {
+                        run(`delete:${dataset.id}`, async () => {
                           await deleteDataset(client, dataset.id)
                           setConfirmingDelete(null)
-                          setNotice(`"${dataset.name}" foi excluído.`)
+                          toast.show(`"${dataset.name}" foi excluído.`)
                           await refresh()
                         })
                       }
                     >
                       Confirmar exclusão
-                    </button>
+                    </Button>
 
-                    <button
-                      type="button"
-                      className="button"
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={() => setConfirmingDelete(null)}
                     >
                       Cancelar
-                    </button>
+                    </Button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="button"
-                    disabled={busy}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="trash"
+                    disabled={busy !== null}
                     onClick={() => setConfirmingDelete(dataset.id)}
                   >
                     Excluir
-                  </button>
+                  </Button>
                 )}
               </div>
             </li>
