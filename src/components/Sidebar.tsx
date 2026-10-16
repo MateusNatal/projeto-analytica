@@ -19,7 +19,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: "graficos", label: "Gráficos", icon: "chart" },
   { id: "campanhas", label: "Campanhas", icon: "table" },
   { id: "analise-ia", label: "IA", icon: "sparkles" },
-  { id: "feedback", label: "Feedback", icon: "message" },
 ]
 
 const ADMIN_ITEM: NavItem = {

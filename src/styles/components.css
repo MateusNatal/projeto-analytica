@@ -414,7 +414,8 @@ label.button:focus-within {
 .toast-region {
   position: fixed;
   right: var(--space-5);
-  bottom: var(--space-5);
+  /* acima do botão flutuante de Feedback */
+  bottom: calc(var(--space-5) + 64px);
   z-index: 50;
   display: grid;
   gap: var(--space-2);

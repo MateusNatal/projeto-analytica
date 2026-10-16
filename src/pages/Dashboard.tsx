@@ -38,7 +38,7 @@ import SavedDatasets from "../components/SavedDatasets"
 import { useAuth } from "../hooks/useAuth"
 import { useFeedbackState } from "../hooks/useFeedbackState"
 import { useIsAdmin } from "../hooks/useIsAdmin"
-import FeedbackForm from "../components/feedback/FeedbackForm"
+import FeedbackDialog from "../components/feedback/FeedbackDialog"
 import PreUseQuestion from "../components/feedback/PreUseQuestion"
 import type { DatasetFormat } from "../services/datasetService"
 import { supabase } from "../services/supabaseClient"
@@ -109,6 +109,13 @@ function Dashboard() {
       <Sidebar isAdmin={isAdmin} />
 
       <ThemeToggle />
+
+      <FeedbackDialog
+        client={supabase}
+        localState={feedback.state}
+        onSubmitted={feedback.markSubmitted}
+        isAdmin={isAdmin}
+      />
 
       <main className="main" id="conteudo" tabIndex={-1}>
         <div className="main-inner">
@@ -257,15 +264,6 @@ function Dashboard() {
 
           <div className="page-section" id="analise-ia">
             <AIInsights campaigns={filteredCampaigns} session={session} />
-          </div>
-
-          <div className="page-section" id="feedback">
-            <FeedbackForm
-              client={supabase}
-              localState={feedback.state}
-              onSubmitted={feedback.markSubmitted}
-              isAdmin={isAdmin}
-            />
           </div>
 
           {supabase && isAdmin && (

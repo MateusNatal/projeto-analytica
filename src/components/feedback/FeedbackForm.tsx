@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react"
+import { useRef, useState, type FormEvent, type ReactNode } from "react"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import {
@@ -32,6 +32,7 @@ interface FeedbackFormProps {
   localState: FeedbackLocalState
   onSubmitted: () => void
   isAdmin: boolean
+  onClose: () => void
 }
 
 // Ordem dos campos na tela, para levar o foco ao primeiro erro.
@@ -44,7 +45,8 @@ const FIELD_ORDER: FeedbackField[] = [
   "roasAfter",
 ]
 
-function FeedbackForm({ client, localState, onSubmitted, isAdmin }: FeedbackFormProps) {
+// Conteúdo da janela de avaliação (ver FeedbackDialog).
+function FeedbackForm({ client, localState, onSubmitted, isAdmin, onClose }: FeedbackFormProps) {
   const toast = useToast()
   const [values, setValues] = useState(emptyFeedbackForm)
   const [errors, setErrors] = useState<FeedbackErrors>({})
@@ -54,40 +56,64 @@ function FeedbackForm({ client, localState, onSubmitted, isAdmin }: FeedbackForm
   const [website, setWebsite] = useState("")
   const formRef = useRef<HTMLFormElement>(null)
 
-  const header = (
-    <div className="section-title">
-      <IconTile name="message" />
-      <div>
-        <h2 id="feedback-title">Avalie o Analytica</h2>
-        <p className="muted small">
-          Leva cerca de 2 minutos. A avaliação é anônima: não pedimos nome,
-          e-mail nem outros dados pessoais.
-        </p>
+  const header = (extra?: ReactNode) => (
+    <header className="feedback-dialog-header">
+      <div className="section-title">
+        <IconTile name="message" />
+        <div>
+          <h2 id="feedback-title">Avalie o Analytica</h2>
+          <p className="muted small">
+            Leva cerca de 2 minutos. A avaliação é anônima: não pedimos nome,
+            e-mail nem outros dados pessoais.
+          </p>
+        </div>
       </div>
-    </div>
+
+      <div className="feedback-dialog-header-actions">
+        {extra}
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onClose}
+          aria-label="Fechar avaliação"
+          title="Fechar"
+        >
+          <Icon name="close" />
+        </button>
+      </div>
+    </header>
   )
 
   if (!client) {
     return (
-      <section className="panel" aria-labelledby="feedback-title">
-        {header}
-        <EmptyState icon="message" title="Envio indisponível no momento">
-          O envio de avaliações fica disponível quando o banco de dados estiver
-          configurado.
-        </EmptyState>
-      </section>
+      <>
+        {header()}
+        <div className="feedback-dialog-body">
+          <EmptyState icon="message" title="Envio indisponível no momento">
+            O envio de avaliações fica disponível quando o banco de dados estiver
+            configurado.
+          </EmptyState>
+        </div>
+      </>
     )
   }
 
   if (localState.submitted) {
     return (
-      <section className="panel" aria-labelledby="feedback-title">
-        {header}
-        <EmptyState icon="checkCircle" title="Obrigado pela sua avaliação!">
-          Sua resposta foi registrada e vai ajudar a melhorar o Analytica.
-        </EmptyState>
-        {isAdmin && <AdminLink />}
-      </section>
+      <>
+        {header()}
+        <div className="feedback-dialog-body">
+          <EmptyState icon="checkCircle" title="Obrigado pela sua avaliação!">
+            Sua resposta foi registrada e vai ajudar a melhorar o Analytica.
+          </EmptyState>
+          <div className="feedback-actions">
+            <Button variant="primary" onClick={onClose}>
+              Fechar
+            </Button>
+            {isAdmin && <AdminLink onNavigate={onClose} />}
+          </div>
+        </div>
+      </>
     )
   }
 
@@ -173,15 +199,15 @@ function FeedbackForm({ client, localState, onSubmitted, isAdmin }: FeedbackForm
   const errorCount = Object.values(errors).filter(Boolean).length
 
   return (
-    <section className="panel" aria-labelledby="feedback-title">
-      <div className="panel-header">
-        {header}
+    <>
+      {header(
         <span className="source-chip tabular" aria-live="polite">
           {answered} de {totalQuestions} respondidas
         </span>
-      </div>
+      )}
 
-      {isAdmin && <AdminLink />}
+      <div className="feedback-dialog-body">
+      {isAdmin && <AdminLink onNavigate={onClose} />}
 
       <form ref={formRef} className="feedback-form" onSubmit={handleSubmit} noValidate>
         {errorCount > 0 && (
@@ -330,13 +356,14 @@ function FeedbackForm({ client, localState, onSubmitted, isAdmin }: FeedbackForm
           </p>
         </div>
       </form>
-    </section>
+      </div>
+    </>
   )
 }
 
-function AdminLink() {
+function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   return (
-    <a className="sample-link admin-link" href="#admin">
+    <a className="sample-link admin-link" href="#admin" onClick={onNavigate}>
       <Icon name="shield" />
       Ver painel de avaliações (administrador)
     </a>

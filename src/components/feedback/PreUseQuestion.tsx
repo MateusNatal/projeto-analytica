@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+
 import { ROAS_OPTIONS, ROAS_QUESTION, type RoasLevel } from "../../utils/feedbackOptions"
 
 import { Button, IconTile } from "../ui/primitives"
@@ -9,14 +11,14 @@ interface PreUseQuestionProps {
 }
 
 // Pergunta feita no primeiro acesso, antes de a pessoa usar a plataforma,
-// para comparar com a mesma pergunta respondida no final, na aba Feedback.
+// para comparar com a mesma pergunta respondida no final, no botão Feedback.
 function PreUseQuestion({ onAnswer, onSkip }: PreUseQuestionProps) {
   const toast = useToast()
 
   function handleAnswer(level: RoasLevel) {
     onAnswer(level)
     toast.show(
-      "Resposta registrada. Depois de explorar o painel, conte como foi na aba Feedback."
+      "Resposta registrada. Depois de explorar o painel, conte como foi no botão Feedback, no canto da tela."
     )
   }
 
@@ -29,7 +31,7 @@ function PreUseQuestion({ onAnswer, onSkip }: PreUseQuestionProps) {
           <p className="muted small">
             Opcional e anônima. Ela ajuda a medir se o Analytica facilita o
             entendimento das métricas. A resposta fica neste navegador até você
-            enviar a avaliação na aba Feedback.
+            enviar a avaliação pelo botão Feedback, no canto da tela.
           </p>
         </div>
       </div>
@@ -37,7 +39,10 @@ function PreUseQuestion({ onAnswer, onSkip }: PreUseQuestionProps) {
       <fieldset className="choice-group">
         <legend>{ROAS_QUESTION}</legend>
 
-        <div className="choice-buttons">
+        <div
+          className="choice-list choice-list-long"
+          style={{ "--choice-count": ROAS_OPTIONS.length } as CSSProperties}
+        >
           {ROAS_OPTIONS.map((option) => (
             <Button
               key={option.value}

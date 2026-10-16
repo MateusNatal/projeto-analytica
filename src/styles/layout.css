@@ -346,7 +346,7 @@
 
   .toast-region {
     right: var(--space-4);
-    bottom: calc(var(--bottom-nav-height) + var(--space-3));
+    bottom: calc(var(--bottom-nav-height) + var(--space-3) + 60px);
   }
 }
 

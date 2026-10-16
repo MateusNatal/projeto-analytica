@@ -102,7 +102,7 @@ O login e o histórico de arquivos são opcionais: sem as variáveis abaixo, o a
    - `20261016000000_initial_schema.sql`: tabelas `datasets` e `campaigns`, com Row Level Security (cada usuário só acessa os próprios dados).
    - `20261016010000_ai_usage.sql`: tabela `ai_usage`, usada no limite diário da IA.
    - `20261016020000_revoke_unused_privileges.sql`: remove do papel `authenticated` as permissões `TRUNCATE`, `REFERENCES` e `TRIGGER` herdadas do Supabase. O `TRUNCATE` ignora o RLS e poderia apagar dados de todos os usuários; o app não usa nenhuma das três.
-   - `20261017000000_feedback.sql`: avaliações da aba Feedback e tabela de administradores (ver seção "Feedback e painel de avaliações").
+   - `20261017000000_feedback.sql`: avaliações (botão Feedback) e tabela de administradores (ver seção "Feedback e painel de avaliações").
 
    Nenhuma delas apaga dados.
 3. Em **Authentication → URL Configuration**, defina a *Site URL* como a URL de produção (ex.: `https://projeto-analytica.vercel.app`) e adicione `http://localhost:5173` em *Redirect URLs*.
@@ -116,12 +116,13 @@ O login usa link mágico por e-mail. O serviço de e-mail padrão do Supabase te
 
 ## 💬 Feedback e painel de avaliações
 
-A aba **Feedback** coleta a avaliação da plataforma pelos participantes (pequenos empreendedores).
+O botão flutuante **Feedback**, fixo no canto inferior direito (no celular, acima da navegação), abre uma janela com o questionário de avaliação da plataforma para os participantes (pequenos empreendedores). A janela fecha pelo botão X, pela tecla Esc ou clicando fora dela, e as respostas preenchidas são mantidas se ela for fechada sem querer. As opções de cada pergunta ocupam toda a largura da janela, lado a lado e com a mesma largura; em telas menores, quebram em mais linhas sem rolagem horizontal.
 
 - **Anônimo:** não pede login, nome nem e-mail. Cada navegador recebe só um identificador aleatório, usado para evitar envios repetidos; ele não aparece no CSV exportado.
-- **ROAS antes e depois:** a pergunta "Você consegue explicar o que significa o ROAS?" aparece no primeiro acesso (antes do uso) e de novo no fim do formulário. A resposta inicial fica no navegador e é enviada junto com a avaliação. Quem não respondeu no início responde no formulário, e essa resposta é marcada como *retrospectiva*, para não misturar os dois casos na comparação.
+- **ROAS antes e depois:** a pergunta "Você consegue explicar o que significa o ROAS?" aparece no topo da página no primeiro acesso (antes do uso) e de novo no fim do questionário. A resposta inicial fica no navegador e é enviada junto com a avaliação. Quem não respondeu no início responde no formulário, e essa resposta é marcada como *retrospectiva*, para não misturar os dois casos na comparação.
 - **Segurança (RLS):** qualquer visitante pode enviar, mas só administradores leem ou apagam as avaliações. As opções válidas e os tamanhos máximos são validados no banco, a data de envio não pode ser forjada e há limite de 30 envios por minuto. Testado em `tests/feedbackRls.test.ts`.
 - **Painel de avaliações:** aparece no menu ("Avaliações") só para administradores, com quantidade de respostas, gráficos de cada pergunta, comparação do ROAS antes e depois, sugestões escritas e exportação em CSV (separado por ponto e vírgula, abre direto no Excel). Sem avaliações, mostra uma mensagem informativa, sem dados de exemplo.
+- **Administradores atuais:** `phorlaninoscnt@gmail.com`. Para `mateusdaniel99@gmail.com`, a conta precisa entrar no site uma vez e depois rodar o comando abaixo.
 
 **Migração:** `supabase/migrations/20261017000000_feedback.sql` (só cria objetos novos).
 

@@ -167,7 +167,7 @@ function AdminFeedback({ client }: AdminFeedbackProps) {
           <h2 id="admin-title">Painel de avaliações</h2>
           <p className="muted small">
             Área restrita a administradores. Os dados mostrados são as
-            respostas reais enviadas pela aba Feedback.
+            respostas reais enviadas pelo botão Feedback.
           </p>
         </div>
       </div>
@@ -217,7 +217,7 @@ function AdminFeedback({ client }: AdminFeedbackProps) {
       <section className="panel" aria-labelledby="admin-title">
         {header}
         <EmptyState icon="users" title="Ainda não há avaliações">
-          Quando os participantes enviarem o formulário da aba Feedback, a
+          Quando os participantes enviarem o questionário do botão Feedback, a
           quantidade de respostas, os gráficos e as sugestões aparecem aqui.
         </EmptyState>
       </section>

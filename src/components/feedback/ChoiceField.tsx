@@ -1,6 +1,11 @@
+import type { CSSProperties } from "react"
+
 import type { FeedbackOption } from "../../utils/feedbackOptions"
 
 import Icon from "../ui/Icon"
+
+// Opções com textos longos pedem colunas mais largas (ver .choice-list-long).
+const LONG_LABEL = 24
 
 interface ChoiceFieldProps {
   name: string
@@ -45,7 +50,14 @@ function ChoiceField({
         </p>
       )}
 
-      <div className="choice-list">
+      <div
+        className={
+          options.some((option) => option.label.length > LONG_LABEL)
+            ? "choice-list choice-list-long"
+            : "choice-list"
+        }
+        style={{ "--choice-count": options.length } as CSSProperties}
+      >
         {options.map((option) => (
           <label key={option.value} className="choice">
             <input

@@ -10,7 +10,7 @@ import {
 } from "../services/feedbackStorage"
 
 // Estado da avaliação no navegador, compartilhado entre a pergunta do
-// primeiro acesso e o formulário da aba Feedback.
+// primeiro acesso e o questionário do botão Feedback.
 export function useFeedbackState() {
   const [state, setState] = useState<FeedbackLocalState>(readFeedbackState)
 
