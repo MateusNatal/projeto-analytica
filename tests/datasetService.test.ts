@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
   DatasetServiceError,
@@ -9,7 +9,6 @@ import {
   mapCampaignRow,
   saveDataset,
 } from "../src/services/datasetService"
-import { isSupabaseConfigured, supabase } from "../src/services/supabaseClient"
 
 import { makeCampaign } from "./helpers"
 
@@ -44,10 +43,37 @@ function fakeClient(result: Result) {
   return { client: client as unknown as SupabaseClient, calls }
 }
 
+// O cliente lê as variáveis ao carregar o módulo; por isso cada teste define
+// o próprio ambiente e reimporta o arquivo, sem depender da máquina em que
+// roda (na Vercel, as variáveis do Supabase existem).
+async function loadSupabaseClient(url: string, key: string) {
+  vi.stubEnv("VITE_SUPABASE_URL", url)
+  vi.stubEnv("VITE_SUPABASE_ANON_KEY", key)
+  vi.resetModules()
+
+  return import("../src/services/supabaseClient")
+}
+
 describe("supabaseClient", () => {
-  it("sem variáveis de ambiente, o app roda sem Supabase", () => {
-    expect(isSupabaseConfigured).toBe(false)
-    expect(supabase).toBeNull()
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("sem variáveis de ambiente, o app roda sem Supabase", async () => {
+    const client = await loadSupabaseClient("", "")
+
+    expect(client.isSupabaseConfigured).toBe(false)
+    expect(client.supabase).toBeNull()
+  })
+
+  it("com as variáveis, cria o cliente", async () => {
+    const client = await loadSupabaseClient(
+      "https://exemplo.supabase.co",
+      "chave-publica-de-teste"
+    )
+
+    expect(client.isSupabaseConfigured).toBe(true)
+    expect(client.supabase).not.toBeNull()
   })
 })
 
