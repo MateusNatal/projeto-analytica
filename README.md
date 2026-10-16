@@ -102,6 +102,7 @@ O login e o histórico de arquivos são opcionais: sem as variáveis abaixo, o a
    - `20261016000000_initial_schema.sql`: tabelas `datasets` e `campaigns`, com Row Level Security (cada usuário só acessa os próprios dados).
    - `20261016010000_ai_usage.sql`: tabela `ai_usage`, usada no limite diário da IA.
    - `20261016020000_revoke_unused_privileges.sql`: remove do papel `authenticated` as permissões `TRUNCATE`, `REFERENCES` e `TRIGGER` herdadas do Supabase. O `TRUNCATE` ignora o RLS e poderia apagar dados de todos os usuários; o app não usa nenhuma das três.
+   - `20261017000000_feedback.sql`: avaliações da aba Feedback e tabela de administradores (ver seção "Feedback e painel de avaliações").
 
    Nenhuma delas apaga dados.
 3. Em **Authentication → URL Configuration**, defina a *Site URL* como a URL de produção (ex.: `https://projeto-analytica.vercel.app`) e adicione `http://localhost:5173` em *Redirect URLs*.
@@ -110,6 +111,28 @@ O login e o histórico de arquivos são opcionais: sem as variáveis abaixo, o a
 A chave `anon`/*publishable* é pública por design; quem protege os dados são as políticas de RLS, testadas em `tests/supabaseRls.test.ts` com um Postgres embutido (PGlite). A chave `service_role` **nunca** deve ir para o frontend.
 
 O login usa link mágico por e-mail. O serviço de e-mail padrão do Supabase tem limite baixo de envios por hora; para uso real, configure um SMTP próprio em **Authentication → SMTP Settings**.
+
+---
+
+## 💬 Feedback e painel de avaliações
+
+A aba **Feedback** coleta a avaliação da plataforma pelos participantes (pequenos empreendedores).
+
+- **Anônimo:** não pede login, nome nem e-mail. Cada navegador recebe só um identificador aleatório, usado para evitar envios repetidos; ele não aparece no CSV exportado.
+- **ROAS antes e depois:** a pergunta "Você consegue explicar o que significa o ROAS?" aparece no primeiro acesso (antes do uso) e de novo no fim do formulário. A resposta inicial fica no navegador e é enviada junto com a avaliação. Quem não respondeu no início responde no formulário, e essa resposta é marcada como *retrospectiva*, para não misturar os dois casos na comparação.
+- **Segurança (RLS):** qualquer visitante pode enviar, mas só administradores leem ou apagam as avaliações. As opções válidas e os tamanhos máximos são validados no banco, a data de envio não pode ser forjada e há limite de 30 envios por minuto. Testado em `tests/feedbackRls.test.ts`.
+- **Painel de avaliações:** aparece no menu ("Avaliações") só para administradores, com quantidade de respostas, gráficos de cada pergunta, comparação do ROAS antes e depois, sugestões escritas e exportação em CSV (separado por ponto e vírgula, abre direto no Excel). Sem avaliações, mostra uma mensagem informativa, sem dados de exemplo.
+
+**Migração:** `supabase/migrations/20261017000000_feedback.sql` (só cria objetos novos).
+
+**Tornar alguém administrador:** a pessoa entra uma vez no site com o link de acesso e, no **SQL Editor** do Supabase, rode:
+
+```sql
+insert into public.admin_users (user_id)
+select id from auth.users where email = 'email-da-pessoa@exemplo.com';
+```
+
+Para remover o acesso: `delete from public.admin_users where user_id = (select id from auth.users where email = '...');`
 
 ---
 

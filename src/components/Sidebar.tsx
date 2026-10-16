@@ -8,21 +8,36 @@ interface NavItem {
   // Rótulo curto da navegação inferior do celular
   short?: string
   icon: IconName
+  // Fora da navegação inferior do celular, para caber em uma linha
+  hideOnMobile?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
   { id: "dados", label: "Dados", icon: "database" },
   { id: "visao-geral", label: "Visão geral", short: "Visão", icon: "overview" },
-  { id: "insights", label: "Insights", icon: "lightbulb" },
+  { id: "insights", label: "Insights", icon: "lightbulb", hideOnMobile: true },
   { id: "graficos", label: "Gráficos", icon: "chart" },
   { id: "campanhas", label: "Campanhas", icon: "table" },
   { id: "analise-ia", label: "IA", icon: "sparkles" },
+  { id: "feedback", label: "Feedback", icon: "message" },
 ]
+
+const ADMIN_ITEM: NavItem = {
+  id: "admin",
+  label: "Avaliações",
+  icon: "shield",
+  hideOnMobile: true,
+}
+
+interface SidebarProps {
+  isAdmin?: boolean
+}
 
 // Barra lateral no desktop, só ícones no tablet e, no celular, barra superior
 // com a logo e navegação inferior (ver layout.css).
-function Sidebar() {
-  const active = useActiveSection(NAV_ITEMS.map((item) => item.id))
+function Sidebar({ isAdmin = false }: SidebarProps) {
+  const items = isAdmin ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS
+  const active = useActiveSection(items.map((item) => item.id))
 
   return (
     <aside className="sidebar">
@@ -45,8 +60,8 @@ function Sidebar() {
 
       <nav className="sidebar-nav" aria-label="Seções do painel">
         <ul>
-          {NAV_ITEMS.map((item) => (
-            <li key={item.id}>
+          {items.map((item) => (
+            <li key={item.id} className={item.hideOnMobile ? "nav-item-desktop" : undefined}>
               <a
                 className="nav-link"
                 href={`#${item.id}`}

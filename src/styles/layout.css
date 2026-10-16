@@ -302,6 +302,10 @@
     white-space: nowrap;
   }
 
+  .nav-item-desktop {
+    display: none;
+  }
+
   .main {
     padding: calc(var(--topbar-height) + var(--space-5)) var(--space-4)
       calc(var(--bottom-nav-height) + var(--space-6));

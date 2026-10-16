@@ -36,12 +36,19 @@ import AccountPanel from "../components/AccountPanel"
 import SavedDatasets from "../components/SavedDatasets"
 
 import { useAuth } from "../hooks/useAuth"
+import { useFeedbackState } from "../hooks/useFeedbackState"
+import { useIsAdmin } from "../hooks/useIsAdmin"
+import FeedbackForm from "../components/feedback/FeedbackForm"
+import PreUseQuestion from "../components/feedback/PreUseQuestion"
 import type { DatasetFormat } from "../services/datasetService"
 import { supabase } from "../services/supabaseClient"
 
 // Os gráficos (Recharts) ficam em um arquivo separado, carregado sob demanda,
 // para que o restante do painel apareça mais rápido.
 const CampaignChart = lazy(() => import("../components/CampaignChart"))
+
+// Painel de avaliações: só é baixado por administradores.
+const AdminFeedback = lazy(() => import("../components/feedback/AdminFeedback"))
 
 const SAMPLE_SOURCE = "Dados de exemplo"
 
@@ -51,6 +58,13 @@ function Dashboard() {
   const [dataFormat, setDataFormat] = useState<DatasetFormat>("sample")
   const [alreadySaved, setAlreadySaved] = useState(false)
   const { session, loading: authLoading } = useAuth()
+  const isAdmin = useIsAdmin(session)
+  const feedback = useFeedbackState()
+  const showPreUse =
+    supabase !== null &&
+    !feedback.state.preUse &&
+    !feedback.state.preUseDismissed &&
+    !feedback.state.submitted
   const [selectedPlatform, setSelectedPlatform] = useState(ALL_PLATFORMS)
 
   const platforms = getPlatforms(campaigns)
@@ -92,7 +106,7 @@ function Dashboard() {
         Pular para o conteúdo
       </a>
 
-      <Sidebar />
+      <Sidebar isAdmin={isAdmin} />
 
       <ThemeToggle />
 
@@ -100,6 +114,13 @@ function Dashboard() {
         <div className="main-inner">
 
           <Header dataSource={dataSource} />
+
+          {showPreUse && (
+            <PreUseQuestion
+              onAnswer={feedback.answerPreUse}
+              onSkip={feedback.skipPreUse}
+            />
+          )}
 
           <div className="page-section" id="dados">
             <div className="data-grid">
@@ -237,6 +258,29 @@ function Dashboard() {
           <div className="page-section" id="analise-ia">
             <AIInsights campaigns={filteredCampaigns} session={session} />
           </div>
+
+          <div className="page-section" id="feedback">
+            <FeedbackForm
+              client={supabase}
+              localState={feedback.state}
+              onSubmitted={feedback.markSubmitted}
+              isAdmin={isAdmin}
+            />
+          </div>
+
+          {supabase && isAdmin && (
+            <div className="page-section" id="admin">
+              <Suspense
+                fallback={
+                  <section className="panel">
+                    <Skeleton lines={3} block label="Carregando painel de avaliações…" />
+                  </section>
+                }
+              >
+                <AdminFeedback client={supabase} />
+              </Suspense>
+            </div>
+          )}
 
         </div>
       </main>
