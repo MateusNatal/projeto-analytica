@@ -80,6 +80,21 @@ O GitHub Actions (`.github/workflows/ci.yml`) roda lint, testes e build a cada p
 
 ---
 
+## 🔐 Login e histórico (Supabase)
+
+O login e o histórico de arquivos são opcionais: sem as variáveis abaixo, o app funciona normalmente, só sem essas funções.
+
+1. Crie um projeto em [supabase.com](https://supabase.com).
+2. Rode a migração `supabase/migrations/20261016000000_initial_schema.sql` (cole no **SQL Editor** ou use `supabase db push`). Ela só cria tabelas novas (`datasets` e `campaigns`), com Row Level Security: cada usuário só acessa os próprios dados.
+3. Em **Authentication → URL Configuration**, defina a *Site URL* como a URL de produção (ex.: `https://projeto-analytica.vercel.app`) e adicione `http://localhost:5173` em *Redirect URLs*.
+4. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Project Settings → API). Na Vercel, cadastre as mesmas variáveis e faça um novo deploy.
+
+A chave `anon`/*publishable* é pública por design; quem protege os dados são as políticas de RLS, testadas em `tests/supabaseRls.test.ts` com um Postgres embutido (PGlite). A chave `service_role` **nunca** deve ir para o frontend.
+
+O login usa link mágico por e-mail. O serviço de e-mail padrão do Supabase tem limite baixo de envios por hora; para uso real, configure um SMTP próprio em **Authentication → SMTP Settings**.
+
+---
+
 ## 🚀 Deploy (Vercel)
 
 O projeto está configurado para a Vercel via `vercel.json`:

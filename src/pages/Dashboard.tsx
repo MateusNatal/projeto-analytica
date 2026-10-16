@@ -29,6 +29,12 @@ import PerformanceCard from "../components/PerformanceCard"
 import AIInsights from "../components/AIInsights"
 import CsvImport from "../components/CsvImport"
 import RuleInsights from "../components/RuleInsights"
+import AccountPanel from "../components/AccountPanel"
+import SavedDatasets from "../components/SavedDatasets"
+
+import { useAuth } from "../hooks/useAuth"
+import type { DatasetFormat } from "../services/datasetService"
+import { supabase } from "../services/supabaseClient"
 
 // Os gráficos (Recharts) ficam em um arquivo separado, carregado sob demanda,
 // para que o restante do painel apareça mais rápido.
@@ -39,6 +45,9 @@ const SAMPLE_SOURCE = "Dados de exemplo"
 function Dashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(sampleCampaigns)
   const [dataSource, setDataSource] = useState(SAMPLE_SOURCE)
+  const [dataFormat, setDataFormat] = useState<DatasetFormat>("sample")
+  const [alreadySaved, setAlreadySaved] = useState(false)
+  const { session, loading: authLoading } = useAuth()
   const [selectedPlatform, setSelectedPlatform] = useState(ALL_PLATFORMS)
 
   const platforms = getPlatforms(campaigns)
@@ -53,14 +62,21 @@ function Dashboard() {
     activePlatform
   )
 
-  function loadCampaigns(nextCampaigns: Campaign[], source: string) {
+  function loadCampaigns(
+    nextCampaigns: Campaign[],
+    source: string,
+    format: DatasetFormat,
+    saved = false
+  ) {
     setCampaigns(nextCampaigns)
     setDataSource(source)
+    setDataFormat(format)
+    setAlreadySaved(saved)
     setSelectedPlatform(ALL_PLATFORMS)
   }
 
   function handleImport(result: CSVImportResult, fileName: string) {
-    loadCampaigns(result.campaigns, fileName)
+    loadCampaigns(result.campaigns, fileName, result.format)
   }
 
   const total = summarizeCampaigns(filteredCampaigns)
@@ -75,8 +91,27 @@ function Dashboard() {
       <CsvImport
         dataSource={dataSource}
         onImport={handleImport}
-        onUseSample={() => loadCampaigns(sampleCampaigns, SAMPLE_SOURCE)}
+        onUseSample={() =>
+          loadCampaigns(sampleCampaigns, SAMPLE_SOURCE, "sample")
+        }
       />
+
+      <AccountPanel session={session} loading={authLoading} />
+
+      {supabase && session && (
+        <SavedDatasets
+          client={supabase}
+          userId={session.user.id}
+          campaigns={campaigns}
+          dataSource={dataSource}
+          dataFormat={dataFormat}
+          alreadySaved={alreadySaved}
+          onLoad={(loaded, dataset) =>
+            loadCampaigns(loaded, dataset.name, dataset.sourceFormat, true)
+          }
+          onSaved={() => setAlreadySaved(true)}
+        />
+      )}
 
       <section className="filters" aria-label="Filtros">
 
