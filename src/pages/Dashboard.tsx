@@ -1,15 +1,19 @@
 import { useState } from "react"
 import CampaignTable from "../components/CampaignTable"
 
-import { campaigns } from "../data/mockData"
+import { campaigns as sampleCampaigns } from "../data/mockData"
+
+import type { Campaign, CSVImportResult } from "../types/campaign"
 
 import {
+  ALL_PLATFORMS,
   calculateTotalInvestment,
   calculateTotalConversions,
   calculateTotalRevenue,
   calculateTotalClicks,
   calculateTotalImpressions,
   filterCampaignsByPlatform,
+  getPlatforms,
 } from "../utils/dashboardMetrics"
 
 import {
@@ -24,15 +28,36 @@ import StatCard from "../components/StatCard"
 import CampaignChart from "../components/CampaignChart"
 import PerformanceCard from "../components/PerformanceCard"
 import AIInsights from "../components/AIInsights"
+import CsvImport from "../components/CsvImport"
+
+const SAMPLE_SOURCE = "Dados de exemplo"
 
 function Dashboard() {
-  const [selectedPlatform, setSelectedPlatform] = useState("Todas")
-  
+  const [campaigns, setCampaigns] = useState<Campaign[]>(sampleCampaigns)
+  const [dataSource, setDataSource] = useState(SAMPLE_SOURCE)
+  const [selectedPlatform, setSelectedPlatform] = useState(ALL_PLATFORMS)
+
+  const platforms = getPlatforms(campaigns)
+
+  // Uma plataforma que não existe nos dados atuais equivale a "Todas".
+  const activePlatform = platforms.includes(selectedPlatform)
+    ? selectedPlatform
+    : ALL_PLATFORMS
 
   const filteredCampaigns = filterCampaignsByPlatform(
     campaigns,
-    selectedPlatform
+    activePlatform
   )
+
+  function loadCampaigns(nextCampaigns: Campaign[], source: string) {
+    setCampaigns(nextCampaigns)
+    setDataSource(source)
+    setSelectedPlatform(ALL_PLATFORMS)
+  }
+
+  function handleImport(result: CSVImportResult, fileName: string) {
+    loadCampaigns(result.campaigns, fileName)
+  }
 
   const totalInvestment = calculateTotalInvestment(filteredCampaigns)
 
@@ -59,21 +84,29 @@ function Dashboard() {
 
       <Header />
 
+      <CsvImport
+        dataSource={dataSource}
+        onImport={handleImport}
+        onUseSample={() => loadCampaigns(sampleCampaigns, SAMPLE_SOURCE)}
+      />
+
       <section>
 
         <label>
           Plataforma:
 
           <select
-            value={selectedPlatform}
+            value={activePlatform}
             onChange={(event) =>
               setSelectedPlatform(event.target.value)
             }
           >
-            <option value="Todas">Todas</option>
-            <option value="Instagram Ads">Instagram Ads</option>
-            <option value="Facebook Ads">Facebook Ads</option>
-            <option value="Google Ads">Google Ads</option>
+            <option value={ALL_PLATFORMS}>{ALL_PLATFORMS}</option>
+            {platforms.map((platform) => (
+              <option key={platform} value={platform}>
+                {platform}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -119,7 +152,10 @@ function Dashboard() {
 
         <CampaignChart campaigns={filteredCampaigns} />
 
-        <PerformanceCard campaigns={filteredCampaigns} />
+        <PerformanceCard
+          key={dataSource}
+          campaigns={filteredCampaigns}
+        />
 
       </section>
 <CampaignTable campaigns={filteredCampaigns} />

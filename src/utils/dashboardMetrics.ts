@@ -45,11 +45,19 @@ export function calculateTotalImpressions(
   )
 }
 
+export const ALL_PLATFORMS = "Todas"
+
+export function getPlatforms(campaigns: Campaign[]): string[] {
+  return [...new Set(campaigns.map((campaign) => campaign.platform))].sort(
+    (a, b) => a.localeCompare(b, "pt-BR")
+  )
+}
+
 export function filterCampaignsByPlatform(
   campaigns: Campaign[],
   platform: string
 ): Campaign[] {
-  if (platform === "Todas") {
+  if (platform === ALL_PLATFORMS) {
     return campaigns
   }
 
