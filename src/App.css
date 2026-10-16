@@ -10,14 +10,38 @@
 
 .app-header {
   padding: 8px 0 4px;
+  display: grid;
+  gap: 8px;
 }
 
-.app-header h1 {
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.brand-name {
   font-size: 1.75rem;
+  line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
-.app-header p {
+.brand-tagline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.app-header-description {
   color: var(--text-secondary);
 }
 
