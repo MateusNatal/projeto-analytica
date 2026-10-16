@@ -1,46 +1,44 @@
 import type { Campaign } from "../types/campaign"
 
-export function calculateCTR(campaign: Campaign): number {
-  if (campaign.impressions === 0) {
-    return 0
-  }
+// Cada métrica retorna null quando não pode ser calculada (divisão por zero).
+// Exibir 0 nesses casos seria enganoso: um CPA "R$ 0,00" para uma campanha
+// sem conversões parece ótimo, quando na verdade não houve resultado.
 
-  return (campaign.clicks / campaign.impressions) * 100
+function divide(numerator: number, denominator: number): number | null {
+  return denominator === 0 ? null : numerator / denominator
 }
 
-export function calculateCPC(campaign: Campaign): number {
-  if (campaign.clicks === 0) {
-    return 0
-  }
-
-  return campaign.investment / campaign.clicks
+export function calculateCTR(campaign: Campaign): number | null {
+  const ratio = divide(campaign.clicks, campaign.impressions)
+  return ratio === null ? null : ratio * 100
 }
 
-export function calculateCPA(campaign: Campaign): number {
-  if (campaign.conversions === 0) {
-    return 0
-  }
-
-  return campaign.investment / campaign.conversions
+export function calculateCPC(campaign: Campaign): number | null {
+  return divide(campaign.investment, campaign.clicks)
 }
 
-export function calculateConversionRate(campaign: Campaign): number {
-  if (campaign.clicks === 0) {
-    return 0
-  }
-
-  return (campaign.conversions / campaign.clicks) * 100
+export function calculateCPA(campaign: Campaign): number | null {
+  return divide(campaign.investment, campaign.conversions)
 }
 
-export function calculateROAS(campaign: Campaign): number {
-  if (campaign.investment === 0) {
-    return 0
-  }
-
-  return campaign.revenue / campaign.investment
+export function calculateConversionRate(campaign: Campaign): number | null {
+  const ratio = divide(campaign.conversions, campaign.clicks)
+  return ratio === null ? null : ratio * 100
 }
 
-export function calculateCampaignMetrics(campaign: Campaign) {
+export function calculateROAS(campaign: Campaign): number | null {
+  return divide(campaign.revenue, campaign.investment)
+}
+
+export interface CampaignMetrics {
+  ctr: number | null
+  cpc: number | null
+  cpa: number | null
+  conversionRate: number | null
+  roas: number | null
+}
+
+export function calculateCampaignMetrics(campaign: Campaign): CampaignMetrics {
   return {
     ctr: calculateCTR(campaign),
     cpc: calculateCPC(campaign),

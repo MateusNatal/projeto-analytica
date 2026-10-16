@@ -1,8 +1,8 @@
 function Header() {
   return (
-    <header>
+    <header className="app-header">
       <h1>Analytica</h1>
-      <p>Plataforma inteligente de análise de dados</p>
+      <p>Entenda suas campanhas de marketing digital sem precisar ser especialista.</p>
     </header>
   )
 }

@@ -1,10 +1,11 @@
 function AIInsights() {
   return (
-    <section>
-      <h2>AI Insights</h2>
+    <section className="panel panel-muted">
+      <h2>Análise com IA</h2>
 
-      <p>
-        Aqui aparecerão os insights gerados pela inteligência artificial.
+      <p className="muted">
+        Em breve: explicações e recomendações geradas por inteligência
+        artificial a partir das suas campanhas.
       </p>
     </section>
   )

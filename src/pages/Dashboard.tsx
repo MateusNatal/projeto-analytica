@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import CampaignTable from "../components/CampaignTable"
 
 import { campaigns as sampleCampaigns } from "../data/mockData"
@@ -7,28 +7,32 @@ import type { Campaign, CSVImportResult } from "../types/campaign"
 
 import {
   ALL_PLATFORMS,
-  calculateTotalInvestment,
-  calculateTotalConversions,
-  calculateTotalRevenue,
-  calculateTotalClicks,
-  calculateTotalImpressions,
   filterCampaignsByPlatform,
   getPlatforms,
+  summarizeCampaigns,
 } from "../utils/dashboardMetrics"
 
 import {
   formatCurrency,
-  formatDecimal,
+  formatMultiplier,
   formatNumber,
   formatPercent,
 } from "../utils/formatters"
 
+import { generateInsights } from "../utils/insights"
+import { METRIC_GLOSSARY } from "../utils/metricGlossary"
+import { calculateCampaignMetrics } from "../utils/metrics"
+
 import Header from "../components/Header"
 import StatCard from "../components/StatCard"
-import CampaignChart from "../components/CampaignChart"
 import PerformanceCard from "../components/PerformanceCard"
 import AIInsights from "../components/AIInsights"
 import CsvImport from "../components/CsvImport"
+import RuleInsights from "../components/RuleInsights"
+
+// Os gráficos (Recharts) ficam em um arquivo separado, carregado sob demanda,
+// para que o restante do painel apareça mais rápido.
+const CampaignChart = lazy(() => import("../components/CampaignChart"))
 
 const SAMPLE_SOURCE = "Dados de exemplo"
 
@@ -59,28 +63,12 @@ function Dashboard() {
     loadCampaigns(result.campaigns, fileName)
   }
 
-  const totalInvestment = calculateTotalInvestment(filteredCampaigns)
-
-  const totalConversions = calculateTotalConversions(filteredCampaigns)
-
-  const totalRevenue = calculateTotalRevenue(filteredCampaigns)
-
-  const totalClicks = calculateTotalClicks(filteredCampaigns)
-
-  const totalImpressions = calculateTotalImpressions(filteredCampaigns)
-
-  const totalROAS =
-    totalInvestment > 0
-      ? totalRevenue / totalInvestment
-      : 0
-
-  const totalCTR =
-    totalImpressions > 0
-      ? (totalClicks / totalImpressions) * 100
-      : 0
+  const total = summarizeCampaigns(filteredCampaigns)
+  const totalMetrics = calculateCampaignMetrics(total)
+  const insights = generateInsights(filteredCampaigns)
 
   return (
-    <main>
+    <main className="app">
 
       <Header />
 
@@ -90,10 +78,10 @@ function Dashboard() {
         onUseSample={() => loadCampaigns(sampleCampaigns, SAMPLE_SOURCE)}
       />
 
-      <section>
+      <section className="filters" aria-label="Filtros">
 
-        <label>
-          Plataforma:
+        <label className="field">
+          Plataforma
 
           <select
             value={activePlatform}
@@ -110,55 +98,66 @@ function Dashboard() {
           </select>
         </label>
 
+        <span className="muted small">
+          {filteredCampaigns.length} campanha(s) exibida(s)
+        </span>
+
       </section>
 
 
-      <section>
+      <section className="stat-grid" aria-label="Resumo">
 
         <StatCard
           title="Investimento"
-          value={formatCurrency(totalInvestment)}
+          value={formatCurrency(total.investment)}
           description="Total investido"
-        />
-
-        <StatCard
-          title="Conversões"
-          value={formatNumber(totalConversions)}
-          description="Conversões realizadas"
+          hint={METRIC_GLOSSARY.investment.explanation}
         />
 
         <StatCard
           title="Receita"
-          value={formatCurrency(totalRevenue)}
+          value={formatCurrency(total.revenue)}
           description="Receita gerada"
+          hint={METRIC_GLOSSARY.revenue.reading}
         />
 
         <StatCard
           title="ROAS"
-          value={formatDecimal(totalROAS)}
-          description="Retorno sobre investimento"
+          value={formatMultiplier(totalMetrics.roas)}
+          description="Receita para cada R$ 1 investido"
+          hint={METRIC_GLOSSARY.roas.reading}
+        />
+
+        <StatCard
+          title="Conversões"
+          value={formatNumber(total.conversions)}
+          description="Conversões realizadas"
+          hint={METRIC_GLOSSARY.conversions.explanation}
         />
 
         <StatCard
           title="CTR"
-          value={formatPercent(totalCTR)}
+          value={formatPercent(totalMetrics.ctr)}
           description="Taxa de cliques geral"
+          hint={METRIC_GLOSSARY.ctr.explanation}
         />
 
       </section>
 
+      <RuleInsights insights={insights} />
 
-      <section>
-
+      <Suspense
+        fallback={<section className="panel muted">Carregando gráficos…</section>}
+      >
         <CampaignChart campaigns={filteredCampaigns} />
+      </Suspense>
 
-        <PerformanceCard
-          key={dataSource}
-          campaigns={filteredCampaigns}
-        />
+      <PerformanceCard
+        key={dataSource}
+        campaigns={filteredCampaigns}
+      />
 
-      </section>
-<CampaignTable campaigns={filteredCampaigns} />
+      <CampaignTable campaigns={filteredCampaigns} />
 
       <AIInsights />
 

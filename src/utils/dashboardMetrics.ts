@@ -45,6 +45,21 @@ export function calculateTotalImpressions(
   )
 }
 
+// Soma todas as campanhas em uma só, para calcular as métricas gerais com as
+// mesmas fórmulas usadas para cada campanha.
+export function summarizeCampaigns(campaigns: Campaign[]): Campaign {
+  return {
+    id: 0,
+    name: "Total",
+    platform: ALL_PLATFORMS,
+    investment: calculateTotalInvestment(campaigns),
+    impressions: calculateTotalImpressions(campaigns),
+    clicks: calculateTotalClicks(campaigns),
+    conversions: calculateTotalConversions(campaigns),
+    revenue: calculateTotalRevenue(campaigns),
+  }
+}
+
 export const ALL_PLATFORMS = "Todas"
 
 export function getPlatforms(campaigns: Campaign[]): string[] {

@@ -5,9 +5,10 @@ import type { Campaign } from "../types/campaign"
 import { calculateCampaignMetrics } from "../utils/metrics"
 import {
   formatCurrency,
-  formatDecimal,
+  formatMultiplier,
   formatPercent,
 } from "../utils/formatters"
+import { METRIC_GLOSSARY, type MetricKey } from "../utils/metricGlossary"
 
 interface PerformanceCardProps {
   campaigns: Campaign[]
@@ -26,84 +27,79 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
 
   if (!campaign) {
     return (
-      <section>
+      <section className="panel">
         <h2>Performance</h2>
 
-        <p>Nenhuma campanha disponível para o filtro selecionado.</p>
+        <p className="empty-state">
+          Nenhuma campanha disponível para o filtro selecionado.
+        </p>
       </section>
     )
   }
 
   const metrics = calculateCampaignMetrics(campaign)
 
+  const items: { key: MetricKey; value: string }[] = [
+    { key: "ctr", value: formatPercent(metrics.ctr) },
+    { key: "cpc", value: formatCurrency(metrics.cpc) },
+    { key: "cpa", value: formatCurrency(metrics.cpa) },
+    { key: "conversionRate", value: formatPercent(metrics.conversionRate) },
+    { key: "roas", value: formatMultiplier(metrics.roas) },
+  ]
+
   return (
-    <section>
+    <section className="panel">
 
-      <h2>Performance</h2>
+      <div className="panel-header">
+        <h2>Performance por campanha</h2>
 
-      <label>
-        Campanha:
+        <label className="field">
+          Campanha
 
-        <select
-          value={campaign.id}
-          onChange={(event) =>
-            setSelectedCampaignId(Number(event.target.value))
-          }
-        >
-          {campaigns.map((campaign) => (
-            <option
-              key={campaign.id}
-              value={campaign.id}
-            >
-              {campaign.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          <select
+            value={campaign.id}
+            onChange={(event) =>
+              setSelectedCampaignId(Number(event.target.value))
+            }
+          >
+            {campaigns.map((campaign) => (
+              <option
+                key={campaign.id}
+                value={campaign.id}
+              >
+                {campaign.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
-      <p>
-        Campanha analisada: {campaign.name}
+      <p className="muted">
+        Campanha analisada: <strong>{campaign.name}</strong> ({campaign.platform})
       </p>
 
-      <div>
-        <span>CTR</span>
+      <dl className="metric-list">
+        {items.map(({ key, value }) => {
+          const definition = METRIC_GLOSSARY[key]
 
-        <strong>
-          {formatPercent(metrics.ctr)}
-        </strong>
-      </div>
+          return (
+            <div key={key} className="metric">
+              <dt>
+                {definition.label}
+                {definition.fullName && (
+                  <span className="muted"> · {definition.fullName}</span>
+                )}
+              </dt>
 
-      <div>
-        <span>CPC</span>
-
-        <strong>
-          {formatCurrency(metrics.cpc)}
-        </strong>
-      </div>
-
-      <div>
-        <span>CPA</span>
-
-        <strong>
-          {formatCurrency(metrics.cpa)}
-        </strong>
-      </div>
-
-      <div>
-        <span>Conversão</span>
-
-        <strong>
-          {formatPercent(metrics.conversionRate)}
-        </strong>
-      </div>
-
-      <div>
-        <span>ROAS</span>
-
-        <strong>
-          {formatDecimal(metrics.roas)}
-        </strong>
-      </div>
+              <dd>
+                <strong className="metric-value">{value}</strong>
+                <span>{definition.explanation}</span>
+                <span className="muted small">{definition.reading}</span>
+              </dd>
+            </div>
+          )
+        })}
+      </dl>
 
     </section>
   )
