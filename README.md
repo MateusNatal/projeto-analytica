@@ -44,3 +44,42 @@ Visualização
 Insights
   ↓
 Análise com IA
+```
+
+---
+
+## 🛠️ Tecnologias
+
+- React 19 + TypeScript
+- Vite
+- Recharts (gráficos)
+- Papa Parse (leitura de CSV)
+
+---
+
+## ▶️ Como rodar localmente
+
+Requisitos: Node.js 24 (ou `^20.19` / `>=22.12`, exigido pelo Vite).
+
+```bash
+npm ci          # instala as dependências exatas do package-lock.json
+npm run dev     # servidor de desenvolvimento em http://localhost:5173
+npm run build   # checagem de tipos + build de produção em dist/
+npm run preview # serve o build de produção localmente
+npm run lint    # ESLint
+```
+
+---
+
+## 🚀 Deploy (Vercel)
+
+O projeto está configurado para a Vercel via `vercel.json`:
+
+- **Install:** `npm ci`
+- **Build:** `npm run build`
+- **Saída:** `dist/`
+- Rotas do frontend caem em `index.html` (SPA); caminhos `/api/*` ficam reservados para funções de backend.
+
+Para publicar: importe o repositório do GitHub em [vercel.com/new](https://vercel.com/new). A cada push na `main` a Vercel gera um deploy de produção, e cada pull request recebe uma URL de preview.
+
+> Segredos (chaves de API etc.) nunca devem ir para o código nem para variáveis `VITE_*`, que são embutidas no JavaScript enviado ao navegador. Configure-os em **Project Settings → Environment Variables** na Vercel.
