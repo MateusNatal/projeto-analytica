@@ -5,8 +5,8 @@
   "lang": "pt-BR",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b1026",
-  "theme_color": "#0b1026",
+  "background_color": "#020a1e",
+  "theme_color": "#020a1e",
   "icons": [
     {
       "src": "/brand/analytica-icon-192.png",
@@ -17,6 +17,17 @@
       "src": "/brand/analytica-icon-256.png",
       "sizes": "256x256",
       "type": "image/png"
+    },
+    {
+      "src": "/brand/analytica-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/analytica-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

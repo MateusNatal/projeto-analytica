@@ -30,3 +30,6 @@ dist-ssr
 
 # Vercel
 .vercel
+
+# Referências visuais de terceiros (licença não permite redistribuição)
+design-reference/
