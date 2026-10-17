@@ -1,4 +1,8 @@
-import type { Campaign } from "../types/campaign"
+import {
+  ALL_METRICS_AVAILABLE,
+  type Campaign,
+  type MetricAvailability,
+} from "../types/campaign"
 
 import { summarizeCampaigns } from "./dashboardMetrics"
 import { formatCurrency, formatMultiplier, formatPercent } from "./formatters"
@@ -46,7 +50,11 @@ function listNames(campaigns: Campaign[]): string {
 
 // Gera observações automáticas a partir de regras simples e explicáveis.
 // Cada regra usa apenas os dados informados, sem suposições externas.
-export function generateInsights(campaigns: Campaign[]): Insight[] {
+// Métricas que o arquivo não traz não geram observações (não são zero).
+export function generateInsights(
+  campaigns: Campaign[],
+  availability: MetricAvailability = ALL_METRICS_AVAILABLE
+): Insight[] {
   const active = campaigns.filter((campaign) => campaign.investment > 0)
 
   if (active.length === 0) {
@@ -56,8 +64,8 @@ export function generateInsights(campaigns: Campaign[]): Insight[] {
   const insights: Insight[] = []
   const total = summarizeCampaigns(active)
   const totalMetrics = calculateCampaignMetrics(total)
-  const hasRevenue = total.revenue > 0
-  const hasConversions = total.conversions > 0
+  const hasRevenue = availability.revenue && total.revenue > 0
+  const hasConversions = availability.conversions && total.conversions > 0
 
   const withMetrics = active.map((campaign) => ({
     campaign,
@@ -69,8 +77,9 @@ export function generateInsights(campaigns: Campaign[]): Insight[] {
       id: "no-revenue",
       level: "info",
       title: "Sem dados de receita",
-      message:
-        "Os dados não informam receita, então não dá para saber se os anúncios se pagaram. Inclua a receita ou o valor de conversão para ver o ROAS.",
+      message: availability.revenue
+        ? "A receita das campanhas exibidas está zerada, então não dá para saber se os anúncios se pagaram."
+        : "O arquivo não traz receita, então não dá para saber se os anúncios se pagaram. Inclua a receita ou o valor de conversão para ver o ROAS.",
     })
   } else if (totalMetrics.roas !== null) {
     const roas = totalMetrics.roas

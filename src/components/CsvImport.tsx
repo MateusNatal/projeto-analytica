@@ -16,6 +16,7 @@ const FORMAT_LABELS: Record<CSVFormat, string> = {
   analytica: "Modelo Analytica",
   meta: "Meta Ads",
   google: "Google Ads",
+  tiktok: "TikTok Ads",
   generic: "Formato genérico",
 }
 
@@ -25,6 +26,7 @@ const SAMPLE_FILES = [
   { href: "/exemplos/modelo-analytica.csv", label: "Modelo Analytica" },
   { href: "/exemplos/meta-ads-exemplo.csv", label: "Exemplo Meta Ads" },
   { href: "/exemplos/google-ads-exemplo.csv", label: "Exemplo Google Ads" },
+  { href: "/exemplos/tiktok-ads-exemplo.csv", label: "Exemplo TikTok Ads (por dia)" },
 ]
 
 function CsvImport({ onImport, onUseSample }: CsvImportProps) {
@@ -75,7 +77,8 @@ function CsvImport({ onImport, onUseSample }: CsvImportProps) {
           <div>
             <h2 id="csv-import-title">Importar campanhas</h2>
             <p className="muted small">
-              Exportações do Meta Ads, do Google Ads ou o modelo da Analytica.
+              Exportações do Meta Ads, do Google Ads, do TikTok Ads ou o modelo
+              da Analytica.
             </p>
           </div>
         </div>
@@ -131,10 +134,11 @@ function CsvImport({ onImport, onUseSample }: CsvImportProps) {
       {result && (
         <Alert tone="success">
           <p>
-            <strong>{result.campaigns.length} campanha(s) importada(s)</strong>{" "}
+            <strong>{result.campaignCount} campanha(s) importada(s)</strong>{" "}
             ({FORMAT_LABELS[result.format]}, {result.rowsRead} linha(s) lida(s)
             {result.mergedRows > 0 &&
-              `, ${result.mergedRows} linha(s) da mesma campanha somadas`}
+              `, ${result.mergedRows} linha(s) repetida(s) somadas`}
+            {result.hasDates && ", com datas"}
             ).
           </p>
 

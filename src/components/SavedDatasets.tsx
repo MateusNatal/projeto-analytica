@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-import type { Campaign } from "../types/campaign"
+import type { CampaignRow, MetricAvailability } from "../types/campaign"
 
 import {
   deleteDataset,
@@ -19,11 +19,12 @@ import { useToast } from "./ui/toastContext"
 interface SavedDatasetsProps {
   client: SupabaseClient
   userId: string
-  campaigns: Campaign[]
+  rows: CampaignRow[]
+  availability: MetricAvailability
   dataSource: string
   dataFormat: DatasetFormat
   alreadySaved: boolean
-  onLoad: (campaigns: Campaign[], dataset: SavedDataset) => void
+  onLoad: (rows: CampaignRow[], dataset: SavedDataset) => void
   onSaved: () => void
 }
 
@@ -44,7 +45,8 @@ type BusyAction = "save" | `open:${string}` | `delete:${string}` | null
 function SavedDatasets({
   client,
   userId,
-  campaigns,
+  rows,
+  availability,
   dataSource,
   dataFormat,
   alreadySaved,
@@ -106,7 +108,7 @@ function SavedDatasets({
   }
 
   const canSave =
-    dataFormat !== "sample" && campaigns.length > 0 && !alreadySaved
+    dataFormat !== "sample" && rows.length > 0 && !alreadySaved
 
   const saveHint =
     dataFormat === "sample"
@@ -116,7 +118,7 @@ function SavedDatasets({
         : undefined
 
   return (
-    <section className="panel" aria-labelledby="saved-title">
+    <section className="panel" id="salvos" aria-labelledby="saved-title">
       <div className="panel-header">
         <div className="section-title">
           <IconTile name="folder" />
@@ -136,7 +138,7 @@ function SavedDatasets({
           title={saveHint}
           onClick={() =>
             run("save", async () => {
-              await saveDataset(client, dataSource, dataFormat, campaigns)
+              await saveDataset(client, dataSource, dataFormat, rows, availability)
               toast.show(`"${dataSource}" foi salvo.`)
               onSaved()
               await refresh()

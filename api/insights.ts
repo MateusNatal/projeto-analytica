@@ -126,9 +126,17 @@ function validText(value: unknown, max: number): string | null {
   return text.length > 0 && text.length <= max ? text : null
 }
 
+// Métricas opcionais que o arquivo do usuário não traz. Elas chegam zeradas,
+// mas não são zero: ficam de fora dos dados enviados ao modelo.
+export type MissingMetric = "conversions" | "revenue"
+
+const MISSING_METRICS: MissingMetric[] = ["conversions", "revenue"]
+
 export function validatePayload(
   body: unknown
-): { ok: true; campaigns: CampaignInput[] } | { ok: false; error: string } {
+):
+  | { ok: true; campaigns: CampaignInput[]; missing: MissingMetric[] }
+  | { ok: false; error: string } {
   if (!isRecord(body) || !Array.isArray(body.campaigns)) {
     return { ok: false, error: "Envie a lista de campanhas." }
   }
@@ -186,7 +194,20 @@ export function validatePayload(
     campaigns.push({ name, platform, ...values })
   }
 
-  return { ok: true, campaigns }
+  const rawMissing = body.missingMetrics ?? []
+
+  if (
+    !Array.isArray(rawMissing) ||
+    !rawMissing.every((item) => MISSING_METRICS.includes(item as MissingMetric))
+  ) {
+    return { ok: false, error: "Lista de métricas ausentes inválida." }
+  }
+
+  return {
+    ok: true,
+    campaigns,
+    missing: [...new Set(rawMissing as MissingMetric[])],
+  }
 }
 
 // Métricas -------------------------------------------------------------------
@@ -201,14 +222,37 @@ function ratio(numerator: number, denominator: number, scale = 1) {
   return Math.round((numerator / denominator) * scale * 100) / 100
 }
 
-export function computeMetrics(campaign: CampaignInput) {
+export function computeMetrics(
+  campaign: CampaignInput,
+  missing: MissingMetric[] = []
+) {
+  const noConversions = missing.includes("conversions")
+  const noRevenue = missing.includes("revenue")
+
   return {
     ctrPercent: ratio(campaign.clicks, campaign.impressions, 100),
     cpc: ratio(campaign.investment, campaign.clicks),
-    cpa: ratio(campaign.investment, campaign.conversions),
-    conversionRatePercent: ratio(campaign.conversions, campaign.clicks, 100),
-    roas: ratio(campaign.revenue, campaign.investment),
+    cpa: noConversions ? null : ratio(campaign.investment, campaign.conversions),
+    conversionRatePercent: noConversions
+      ? null
+      : ratio(campaign.conversions, campaign.clicks, 100),
+    roas: noRevenue ? null : ratio(campaign.revenue, campaign.investment),
   }
+}
+
+// Tira do objeto as colunas que o arquivo não traz, para o modelo não ler
+// "0" como um resultado real.
+function withoutMissing<T extends Record<string, unknown>>(
+  item: T,
+  missing: MissingMetric[]
+): Partial<T> {
+  const copy: Partial<T> = { ...item }
+
+  for (const field of missing) {
+    delete copy[field]
+  }
+
+  return copy
 }
 
 // Prompt -----------------------------------------------------------------------
@@ -231,7 +275,15 @@ Responda no formato JSON pedido:
 - recommendations: até 5 ações práticas e específicas.
 - caveat: uma frase sobre os limites desta análise.`
 
-export function buildPrompt(campaigns: CampaignInput[]) {
+const MISSING_LABELS: Record<MissingMetric, string> = {
+  conversions: "conversões (e, por isso, CPA e taxa de conversão)",
+  revenue: "receita (e, por isso, ROAS)",
+}
+
+export function buildPrompt(
+  campaigns: CampaignInput[],
+  missing: MissingMetric[] = []
+) {
   const totals = campaigns.reduce(
     (sum, campaign) => ({
       name: "Total",
@@ -254,18 +306,23 @@ export function buildPrompt(campaigns: CampaignInput[]) {
   )
 
   const data = {
-    total: { ...totals, ...computeMetrics(totals) },
+    total: { ...withoutMissing(totals, missing), ...computeMetrics(totals, missing) },
     campaigns: campaigns.map((campaign) => ({
-      ...campaign,
-      ...computeMetrics(campaign),
+      ...withoutMissing(campaign, missing),
+      ...computeMetrics(campaign, missing),
     })),
   }
+
+  const missingNote =
+    missing.length > 0
+      ? `\nO arquivo não informa: ${missing.map((field) => MISSING_LABELS[field]).join("; ")}. Não comente essas métricas como se fossem zero; diga apenas que não estão disponíveis.`
+      : ""
 
   // As regras vão na instrução de sistema; os dados do usuário, só no
   // conteúdo da mensagem.
   return {
     systemInstruction: SYSTEM_PROMPT,
-    userMessage: `Analise estas campanhas:\n${JSON.stringify(data)}`,
+    userMessage: `Analise estas campanhas:${missingNote}\n${JSON.stringify(data)}`,
   }
 }
 
@@ -427,10 +484,11 @@ type AnalysisResult =
 
 async function requestAnalysis(
   env: Env,
-  campaigns: CampaignInput[]
+  campaigns: CampaignInput[],
+  missing: MissingMetric[]
 ): Promise<AnalysisResult> {
   const ai = new GoogleGenAI({ apiKey: env.geminiKey })
-  const { systemInstruction, userMessage } = buildPrompt(campaigns)
+  const { systemInstruction, userMessage } = buildPrompt(campaigns, missing)
 
   try {
     const response = await ai.models.generateContent({
@@ -556,7 +614,11 @@ export async function POST(request: Request): Promise<Response> {
     // também contem no limite.
     await recordUsage(env, token, userId)
 
-    const result = await requestAnalysis(env, validation.campaigns)
+    const result = await requestAnalysis(
+      env,
+      validation.campaigns,
+      validation.missing
+    )
 
     if (!result.ok) {
       return result.reason === "quota"

@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import type { Campaign } from "../types/campaign"
+import type { Campaign, MetricAvailability } from "../types/campaign"
 
 import { calculateCampaignMetrics } from "../utils/metrics"
 import { calculateTotalInvestment } from "../utils/dashboardMetrics"
@@ -10,14 +10,16 @@ import {
   formatPercent,
 } from "../utils/formatters"
 import { METRIC_GLOSSARY, type MetricKey } from "../utils/metricGlossary"
+import { isMetricAvailable, METRICS } from "../utils/metricCatalog"
 
 import { EmptyState, IconTile, ProgressBar } from "./ui/primitives"
 
 interface PerformanceCardProps {
   campaigns: Campaign[]
+  availability: MetricAvailability
 }
 
-function PerformanceCard({ campaigns }: PerformanceCardProps) {
+function PerformanceCard({ campaigns, availability }: PerformanceCardProps) {
   const [selectedCampaignId, setSelectedCampaignId] = useState(
     campaigns[0]?.id ?? 0
   )
@@ -97,9 +99,14 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
       <dl className="metric-list">
         {items.map(({ key, value }) => {
           const definition = METRIC_GLOSSARY[key]
+          const available = isMetricAvailable(key, availability)
 
           return (
-            <div key={key} className="metric">
+            <div
+              key={key}
+              className="metric"
+              style={{ borderTopColor: METRICS[key].color }}
+            >
               <dt>
                 {definition.label}
                 {definition.fullName && (
@@ -108,9 +115,11 @@ function PerformanceCard({ campaigns }: PerformanceCardProps) {
               </dt>
 
               <dd>
-                <strong className="metric-value">{value}</strong>
+                <strong className="metric-value">{available ? value : "—"}</strong>
                 <span>{definition.explanation}</span>
-                <span className="muted">{definition.reading}</span>
+                <span className="muted">
+                  {available ? definition.reading : "Não disponível neste arquivo."}
+                </span>
               </dd>
             </div>
           )

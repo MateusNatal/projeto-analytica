@@ -388,7 +388,7 @@ describe("validatePayload", () => {
       campaigns: [{ ...CAMPAIGN, name: "  Black Friday  " }],
     })
 
-    expect(result).toEqual({ ok: true, campaigns: [CAMPAIGN] })
+    expect(result).toEqual({ ok: true, campaigns: [CAMPAIGN], missing: [] })
   })
 
   it("ignora campos extras como id", () => {
@@ -396,7 +396,7 @@ describe("validatePayload", () => {
       campaigns: [{ ...CAMPAIGN, id: 9, extra: "x" }],
     })
 
-    expect(result).toEqual({ ok: true, campaigns: [CAMPAIGN] })
+    expect(result).toEqual({ ok: true, campaigns: [CAMPAIGN], missing: [] })
   })
 
   it.each([

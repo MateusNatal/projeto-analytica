@@ -1,7 +1,11 @@
 import { useState } from "react"
 import type { Session } from "@supabase/supabase-js"
 
-import type { Campaign } from "../types/campaign"
+import {
+  OPTIONAL_METRIC_FIELDS,
+  type Campaign,
+  type MetricAvailability,
+} from "../types/campaign"
 
 import { isSupabaseConfigured } from "../services/supabaseClient"
 
@@ -11,6 +15,7 @@ import { Alert, Button, EmptyState, IconTile, Skeleton } from "./ui/primitives"
 interface AIInsightsProps {
   campaigns: Campaign[]
   session: Session | null
+  availability: MetricAvailability
 }
 
 interface AIAnalysis {
@@ -31,7 +36,8 @@ const MAX_CAMPAIGNS = 100
 
 async function requestAnalysis(
   campaigns: Campaign[],
-  accessToken: string
+  accessToken: string,
+  availability: MetricAvailability
 ): Promise<{ analysis: AIAnalysis; remaining: number }> {
   const response = await fetch("/api/insights", {
     method: "POST",
@@ -49,6 +55,8 @@ async function requestAnalysis(
         conversions: campaign.conversions,
         revenue: campaign.revenue,
       })),
+      // Métricas que o arquivo não traz: o servidor não as trata como zero.
+      missingMetrics: OPTIONAL_METRIC_FIELDS.filter((field) => !availability[field]),
     }),
   })
 
@@ -68,7 +76,7 @@ async function requestAnalysis(
   return { analysis: body.analysis, remaining: body.remaining ?? 0 }
 }
 
-function AIInsights({ campaigns, session }: AIInsightsProps) {
+function AIInsights({ campaigns, session, availability }: AIInsightsProps) {
   const [status, setStatus] = useState<Status>({ kind: "idle" })
 
   const header = (
@@ -106,7 +114,7 @@ function AIInsights({ campaigns, session }: AIInsightsProps) {
     setStatus({ kind: "loading" })
 
     try {
-      const result = await requestAnalysis(campaigns, session.access_token)
+      const result = await requestAnalysis(campaigns, session.access_token, availability)
       setStatus({ kind: "done", ...result })
     } catch (caught) {
       setStatus({

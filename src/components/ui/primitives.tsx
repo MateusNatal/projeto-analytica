@@ -62,12 +62,18 @@ export function Button({
 export function IconTile({
   name,
   size = "md",
+  color,
 }: {
   name: IconName
   size?: "md" | "sm"
+  // Cor sólida da métrica (variável CSS). Sem ela, usa o gradiente da marca.
+  color?: string
 }) {
   return (
-    <span className={size === "sm" ? "icon-tile icon-tile-sm" : "icon-tile"}>
+    <span
+      className={size === "sm" ? "icon-tile icon-tile-sm" : "icon-tile"}
+      style={color ? { background: color, boxShadow: "none" } : undefined}
+    >
       <Icon name={name} />
     </span>
   )

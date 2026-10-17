@@ -9,7 +9,8 @@ import {
 } from "../src/services/csvParser"
 
 import type { NumericField } from "../src/services/campaignMapper"
-import type { Campaign } from "../src/types/campaign"
+import type { Campaign, CSVImportResult } from "../src/types/campaign"
+import { aggregateRows } from "../src/utils/campaignData"
 
 import { readSample } from "./helpers"
 
@@ -43,6 +44,11 @@ function sum(campaigns: Campaign[], field: NumericField): number {
   return campaigns.reduce((total, campaign) => total + campaign[field], 0)
 }
 
+// Soma as linhas por campanha, como o painel faz.
+function campaignsOf(result: CSVImportResult): Campaign[] {
+  return aggregateRows(result.rows)
+}
+
 function parseSample(name: string) {
   return parseCampaignText(readSample(name).toString("utf8"))
 }
@@ -71,8 +77,8 @@ describe("arquivos de exemplo", () => {
     expect(result.format).toBe("analytica")
     expect(result.errors).toEqual([])
     expect(result.warnings).toEqual([])
-    expect(result.campaigns).toHaveLength(5)
-    expect(result.campaigns[0]).toEqual({
+    expect(campaignsOf(result)).toHaveLength(5)
+    expect(campaignsOf(result)[0]).toEqual({
       id: 1,
       name: "Black Friday",
       platform: "Instagram Ads",
@@ -84,15 +90,28 @@ describe("arquivos de exemplo", () => {
     })
   })
 
-  it("importa o Meta Ads e soma linhas da mesma campanha", () => {
+  it("importa o Meta Ads mantendo cada período e somando no painel", () => {
     const result = parseSample("meta-ads-exemplo.csv")
 
     expect(result.format).toBe("meta")
     expect(result.rowsRead).toBe(4)
-    expect(result.mergedRows).toBe(1)
-    expect(result.campaigns).toHaveLength(3)
+    // As duas semanas da "Coleção Primavera" ficam em linhas separadas,
+    // para o filtro de período; nada foi somado na importação.
+    expect(result.mergedRows).toBe(0)
+    expect(result.rows).toHaveLength(4)
+    expect(result.hasDates).toBe(true)
+    expect(result.campaignCount).toBe(3)
+    expect(
+      result.rows
+        .filter((row) => row.name === "Coleção Primavera")
+        .map((row) => [row.dateStart, row.dateEnd])
+    ).toEqual([
+      ["2026-10-01", "2026-10-07"],
+      ["2026-10-08", "2026-10-14"],
+    ])
+    expect(campaignsOf(result)).toHaveLength(3)
 
-    const [primavera] = result.campaigns
+    const [primavera] = campaignsOf(result)
 
     expect(primavera.name).toBe("Coleção Primavera")
     expect(primavera.platform).toBe("Meta Ads")
@@ -108,7 +127,7 @@ describe("arquivos de exemplo", () => {
 
     expect(result.format).toBe("google")
     expect(result.errors).toEqual([])
-    expect(result.campaigns.map((campaign) => campaign.name)).toEqual([
+    expect(campaignsOf(result).map((campaign) => campaign.name)).toEqual([
       "Pesquisa - Marca",
       "Pesquisa - Genérica",
       "Display - Prospecção",
@@ -117,7 +136,7 @@ describe("arquivos de exemplo", () => {
   })
 
   it("Google Ads: a soma bate com a linha \"Total: conta\" do arquivo", () => {
-    const { campaigns } = parseSample("google-ads-exemplo.csv")
+    const campaigns = campaignsOf(parseSample("google-ads-exemplo.csv"))
 
     expect(sum(campaigns, "investment")).toBeCloseTo(2994.55)
     expect(sum(campaigns, "impressions")).toBe(306980)
@@ -127,7 +146,7 @@ describe("arquivos de exemplo", () => {
   })
 
   it("Google Ads: \"--\" vira zero", () => {
-    const { campaigns } = parseSample("google-ads-exemplo.csv")
+    const campaigns = campaignsOf(parseSample("google-ads-exemplo.csv"))
 
     const display = campaigns.find(
       (campaign) => campaign.name === "Display - Prospecção"
@@ -148,7 +167,7 @@ describe("arquivos de exemplo", () => {
     const file = new File([toArrayBuffer(utf16le(tsv))], "google.csv")
     const result = await parseCampaignCSV(file)
 
-    expect(result.campaigns).toEqual([
+    expect(campaignsOf(result)).toEqual([
       {
         id: 1,
         name: "Marca",
@@ -169,8 +188,8 @@ describe("arquivos de exemplo", () => {
     const file = new File([toArrayBuffer(windows1252(text))], "latin.csv")
     const result = await parseCampaignCSV(file)
 
-    expect(result.campaigns[0].name).toBe("Promoção Verão")
-    expect(result.campaigns[0].investment).toBeCloseTo(1234.56)
+    expect(campaignsOf(result)[0].name).toBe("Promoção Verão")
+    expect(campaignsOf(result)[0].investment).toBeCloseTo(1234.56)
   })
 })
 
@@ -188,7 +207,7 @@ describe("dados problemáticos", () => {
       ].join("\n")
     )
 
-    expect(result.campaigns.map((campaign) => campaign.name)).toEqual(["Ok"])
+    expect(campaignsOf(result).map((campaign) => campaign.name)).toEqual(["Ok"])
     expect(result.errors).toEqual([
       { line: 3, message: 'Investimento com valor inválido ("abc").' },
       { line: 4, message: "O investimento não pode ser negativo." },
@@ -213,14 +232,16 @@ describe("dados problemáticos", () => {
   })
 
   it("mantém campanhas cujo nome começa com Total", () => {
-    const { campaigns } = parseCampaignText(`${header}\nTotal Flex;10;100;5`)
+    const campaigns = campaignsOf(parseCampaignText(`${header}\nTotal Flex;10;100;5`))
 
     expect(campaigns[0].name).toBe("Total Flex")
   })
 
   it("lê números americanos com vírgula de milhar", () => {
-    const { campaigns } = parseCampaignText(
-      'Campaign,Cost,Impressions,Clicks\nA,"1,234.50","12,000",300\nB,99.9,800,20'
+    const campaigns = campaignsOf(
+      parseCampaignText(
+        'Campaign,Cost,Impressions,Clicks\nA,"1,234.50","12,000",300\nB,99.9,800,20'
+      )
     )
 
     expect(campaigns.map((campaign) => campaign.investment)).toEqual([

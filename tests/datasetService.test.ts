@@ -6,8 +6,11 @@ import {
   deleteDataset,
   listDatasets,
   loadDatasetCampaigns,
+  fromAvailability,
   mapCampaignRow,
+  PAGE_SIZE,
   saveDataset,
+  toAvailability,
 } from "../src/services/datasetService"
 
 import { makeCampaign } from "./helpers"
@@ -20,7 +23,7 @@ function fakeClient(result: Result) {
 
   const builder: Record<string, unknown> = {}
 
-  for (const method of ["select", "order", "limit", "eq", "delete"]) {
+  for (const method of ["select", "order", "limit", "eq", "delete", "range"]) {
     builder[method] = (...args: unknown[]) => {
       calls.push({ method, args })
       return builder
@@ -102,6 +105,8 @@ describe("mapCampaignRow", () => {
       clicks: 950,
       conversions: 76.5,
       revenue: 6200,
+      dateStart: null,
+      dateEnd: null,
     })
   })
 })
@@ -115,6 +120,7 @@ describe("listDatasets", () => {
           name: "meta.csv",
           source_format: "meta",
           created_at: "2026-10-16T12:00:00Z",
+          available_fields: ["conversions"],
           campaigns: [{ count: 3 }],
         },
       ],
@@ -128,6 +134,7 @@ describe("listDatasets", () => {
         sourceFormat: "meta",
         createdAt: "2026-10-16T12:00:00Z",
         campaignCount: 3,
+        availability: { conversions: true, revenue: false },
       },
     ])
 
@@ -153,18 +160,24 @@ describe("saveDataset", () => {
   it("envia as campanhas sem ids para a função save_dataset", async () => {
     const { client, calls } = fakeClient({ data: "novo-id", error: null })
 
-    const id = await saveDataset(client, "meta.csv", "meta", [
-      makeCampaign({ id: 42, name: "A" }),
-    ])
+    const id = await saveDataset(
+      client,
+      "tiktok.csv",
+      "tiktok",
+      [
+        { ...makeCampaign({ id: 42, name: "A" }), dateStart: "2026-10-01", dateEnd: null },
+      ],
+      { conversions: true, revenue: false }
+    )
 
     expect(id).toBe("novo-id")
     expect(calls[0]).toEqual({
       method: "rpc",
       args: [
-        "save_dataset",
+        "save_dataset_v2",
         {
-          p_name: "meta.csv",
-          p_source_format: "meta",
+          p_name: "tiktok.csv",
+          p_source_format: "tiktok",
           p_campaigns: [
             {
               name: "A",
@@ -174,8 +187,12 @@ describe("saveDataset", () => {
               clicks: 1000,
               conversions: 50,
               revenue: 4000,
+              report_date: "2026-10-01",
+              report_end_date: null,
             },
           ],
+          // Só as métricas opcionais que o arquivo trazia.
+          p_available_fields: ["conversions"],
         },
       ],
     })
@@ -184,10 +201,61 @@ describe("saveDataset", () => {
   it("limita o nome a 200 caracteres", async () => {
     const { client, calls } = fakeClient({ data: "id", error: null })
 
-    await saveDataset(client, "a".repeat(300), "generic", [makeCampaign()])
+    await saveDataset(
+      client,
+      "a".repeat(300),
+      "generic",
+      [{ ...makeCampaign(), dateStart: null, dateEnd: null }],
+      { conversions: true, revenue: true }
+    )
 
     const params = calls[0].args[1] as { p_name: string }
     expect(params.p_name).toHaveLength(200)
+  })
+})
+
+describe("disponibilidade das métricas", () => {
+  it("arquivo salvo antes do registro (nulo) é tratado como completo", () => {
+    expect(toAvailability(null)).toEqual({ conversions: true, revenue: true })
+  })
+
+  it("converte nos dois sentidos", () => {
+    expect(toAvailability(["revenue"])).toEqual({ conversions: false, revenue: true })
+    expect(fromAvailability({ conversions: false, revenue: true })).toEqual(["revenue"])
+    expect(fromAvailability({ conversions: false, revenue: false })).toEqual([])
+  })
+})
+
+describe("loadDatasetCampaigns em páginas", () => {
+  it("busca páginas de 1000 linhas até a última", async () => {
+    const pages = [PAGE_SIZE, PAGE_SIZE, 3]
+    const ranges: unknown[][] = []
+    let call = 0
+    const builder: Record<string, unknown> = {
+      select: () => builder,
+      eq: () => builder,
+      order: () => builder,
+      range: (...args: unknown[]) => {
+        ranges.push(args)
+        const size = pages[call++]
+        const rows = Array.from({ length: size }, (_, i) => ({
+          id: i, name: "C", platform: "TikTok Ads", investment: "1", impressions: "10",
+          clicks: "1", conversions: "0", revenue: "0", report_date: "2026-10-01", report_end_date: null,
+        }))
+        return Promise.resolve({ data: rows, error: null })
+      },
+    }
+    const client = { from: () => builder } as unknown as SupabaseClient
+
+    const rows = await loadDatasetCampaigns(client, "d1")
+
+    expect(rows).toHaveLength(PAGE_SIZE * 2 + 3)
+    expect(ranges).toEqual([
+      [0, PAGE_SIZE - 1],
+      [PAGE_SIZE, PAGE_SIZE * 2 - 1],
+      [PAGE_SIZE * 2, PAGE_SIZE * 3 - 1],
+    ])
+    expect(rows[0]).toMatchObject({ dateStart: "2026-10-01", dateEnd: null, investment: 1 })
   })
 })
 

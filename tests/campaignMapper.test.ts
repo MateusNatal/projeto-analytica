@@ -129,6 +129,8 @@ describe("mapRowToCampaign", () => {
       clicks: 250,
       conversions: 0,
       revenue: 0,
+      dateStart: null,
+      dateEnd: null,
     })
   })
 

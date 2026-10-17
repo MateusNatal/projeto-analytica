@@ -1,7 +1,7 @@
 import Papa from "papaparse"
 
 import type {
-  Campaign,
+  CampaignRow,
   CSVImportIssue,
   CSVImportResult,
 } from "../types/campaign"
@@ -109,29 +109,31 @@ function describeMissingColumns(missing: (keyof typeof FIELD_LABELS)[]) {
     .join("; ")
 }
 
-// Soma linhas da mesma campanha e plataforma, como acontece em exportações
-// do Meta Ads com detalhamento por dia ou por conjunto de anúncios.
-function mergeDuplicateCampaigns(campaigns: Campaign[]): Campaign[] {
-  const merged = new Map<string, Campaign>()
+// Soma linhas repetidas da mesma campanha, plataforma e período, como acontece
+// em exportações do Meta Ads detalhadas por conjunto de anúncios. Linhas de
+// datas diferentes são mantidas separadas, para o filtro de período.
+function mergeDuplicateRows(rows: CampaignRow[]): CampaignRow[] {
+  const merged = new Map<string, CampaignRow>()
 
-  for (const campaign of campaigns) {
-    const key = `${campaign.name}\u0000${campaign.platform}`
+  for (const row of rows) {
+    const key = JSON.stringify([row.name, row.platform, row.dateStart, row.dateEnd])
     const existing = merged.get(key)
 
     if (!existing) {
-      merged.set(key, { ...campaign })
+      merged.set(key, { ...row })
       continue
     }
 
     for (const field of NUMERIC_FIELDS) {
-      existing[field] += campaign[field]
+      existing[field] += row[field]
     }
   }
 
-  return [...merged.values()].map((campaign, index) => ({
-    ...campaign,
-    id: index + 1,
-  }))
+  return [...merged.values()].map((row, index) => ({ ...row, id: index + 1 }))
+}
+
+function countCampaigns(rows: CampaignRow[]): number {
+  return new Set(rows.map((row) => JSON.stringify([row.name, row.platform]))).size
 }
 
 const DELIMITERS = [",", ";", "\t", "|"]
@@ -201,7 +203,7 @@ export function parseCampaignText(text: string): CSVImportResult {
 
   const decimalSeparator = detectDecimalSeparator(numericCells)
 
-  const campaigns: Campaign[] = []
+  const campaigns: CampaignRow[] = []
   const errors: CSVImportIssue[] = []
   let rowsRead = 0
   let clicksAboveImpressions = 0
@@ -259,18 +261,23 @@ export function parseCampaignText(text: string): CSVImportResult {
     )
   }
 
-  const mergedCampaigns = mergeDuplicateCampaigns(campaigns)
+  const mergedRows = mergeDuplicateRows(campaigns)
   const warnings: string[] = []
+  const availability = {
+    conversions: columns.conversions !== undefined,
+    revenue: columns.revenue !== undefined,
+  }
 
-  if (columns.conversions === undefined) {
+  // Métrica ausente não vira zero: ela deixa de aparecer nos indicadores.
+  if (!availability.conversions) {
     warnings.push(
-      "Coluna de conversões não encontrada: conversões, CPA e taxa de conversão ficarão zerados."
+      "O arquivo não tem coluna de conversões: conversões, CPA e taxa de conversão não serão exibidos."
     )
   }
 
-  if (columns.revenue === undefined) {
+  if (!availability.revenue) {
     warnings.push(
-      "Coluna de receita não encontrada: receita e ROAS ficarão zerados."
+      "O arquivo não tem coluna de receita: receita e ROAS não serão exibidos."
     )
   }
 
@@ -281,10 +288,13 @@ export function parseCampaignText(text: string): CSVImportResult {
   }
 
   return {
-    campaigns: mergedCampaigns,
+    rows: mergedRows,
+    campaignCount: countCampaigns(mergedRows),
     format,
     rowsRead,
-    mergedRows: campaigns.length - mergedCampaigns.length,
+    mergedRows: campaigns.length - mergedRows.length,
+    availability,
+    hasDates: mergedRows.some((row) => row.dateStart !== null),
     errors,
     warnings,
   }
@@ -297,7 +307,7 @@ export async function parseCampaignCSV(
 
   if (!ACCEPTED_EXTENSIONS.includes(extension)) {
     throw new CSVImportError(
-      "Formato não suportado. Envie um arquivo .csv exportado do Meta Ads, do Google Ads ou do modelo da Analytica."
+      "Formato não suportado. Envie um arquivo .csv exportado do Meta Ads, do Google Ads, do TikTok Ads ou do modelo da Analytica."
     )
   }
 

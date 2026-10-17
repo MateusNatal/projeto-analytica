@@ -68,6 +68,17 @@
   --axis: #3a4c68;
   --chart-text: #b4bfd8;
 
+  /* Cores por métrica, iguais em indicadores, gráficos e legendas.
+     Investimento x receita aparecem lado a lado: par validado para
+     daltonismo (deuteranopia/protanopia) e contraste em cada tema. */
+  --metric-revenue: #0ca678;
+  --metric-investment: #ea580c;
+  --metric-clicks: #3b8cf6;
+  --metric-impressions: #a580f5;
+  --metric-conversions: #1ab3c9;
+  --metric-cost: #f0565b;
+  --metric-rate: #8b8ff8;
+
   /* Formas */
   --radius-xl: 28px;
   --radius-lg: 24px;
@@ -127,6 +138,14 @@
   --grid: #e6eaf3;
   --axis: #c5cddf;
   --chart-text: #45506d;
+
+  --metric-revenue: #37b24d;
+  --metric-investment: #c2410c;
+  --metric-clicks: #1c6fd6;
+  --metric-impressions: #7c3aed;
+  --metric-conversions: #0b7d8e;
+  --metric-cost: #c92a2a;
+  --metric-rate: #5753d6;
 
   --shadow-card: 0 16px 36px -24px rgba(20, 40, 90, 0.35);
   --shadow-float: 0 16px 40px -16px rgba(20, 40, 90, 0.35);

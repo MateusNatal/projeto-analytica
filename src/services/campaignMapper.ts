@@ -1,5 +1,6 @@
-import type { Campaign, CSVFormat } from "../types/campaign"
+import type { Campaign, CampaignRow, CSVFormat } from "../types/campaign"
 
+import { parseReportDate } from "../utils/dateParser"
 import {
   parseLocaleNumber,
   type DecimalSeparator,
@@ -8,6 +9,9 @@ import {
 export type CampaignField = Exclude<keyof Campaign, "id">
 
 export type NumericField = Exclude<CampaignField, "name" | "platform">
+
+// Colunas reconhecidas no arquivo: campos da campanha e as datas.
+export type ColumnField = CampaignField | "dateStart" | "dateEnd"
 
 export const NUMERIC_FIELDS: NumericField[] = [
   "investment",
@@ -24,7 +28,7 @@ export const REQUIRED_FIELDS: CampaignField[] = [
   "clicks",
 ]
 
-export const FIELD_LABELS: Record<CampaignField, string> = {
+export const FIELD_LABELS: Record<ColumnField, string> = {
   name: "Campanha",
   platform: "Plataforma",
   investment: "Investimento",
@@ -32,12 +36,16 @@ export const FIELD_LABELS: Record<CampaignField, string> = {
   clicks: "Cliques",
   conversions: "Conversões",
   revenue: "Receita",
+  dateStart: "Data",
+  dateEnd: "Data final",
 }
 
-// Nomes de coluna aceitos, já normalizados (sem acento, minúsculos e sem o
-// conteúdo entre parênteses). A ordem define a prioridade quando o arquivo
-// tem mais de uma coluna candidata, como "Cliques (todos)" e "Cliques no link".
-export const HEADER_ALIASES: Record<CampaignField, string[]> = {
+// Nomes de coluna aceitos, normalizados (sem acento e em minúsculas). Cada
+// cabeçalho é comparado de duas formas: com o texto entre parênteses (ex.:
+// "clicks destination", para diferenciar "Clicks (destination)" de
+// "Clicks (all)") e sem ele (ex.: "valor usado" para "Valor usado (BRL)").
+// A ordem define a prioridade quando há mais de uma coluna candidata.
+export const HEADER_ALIASES: Record<ColumnField, string[]> = {
   name: [
     "name",
     "nome",
@@ -55,11 +63,16 @@ export const HEADER_ALIASES: Record<CampaignField, string[]> = {
     "amount spent",
     "custo",
     "cost",
+    "custo total",
+    "total cost",
     "gasto",
     "spend",
   ],
   impressions: ["impressions", "impressoes", "impr"],
   clicks: [
+    // TikTok: "Clicks (destination)" é o clique que leva ao site.
+    "clicks destination",
+    "cliques destino",
     "clicks",
     "cliques",
     "cliques no link",
@@ -86,8 +99,46 @@ export const HEADER_ALIASES: Record<CampaignField, string[]> = {
     "valor de conversao das compras no site",
     "purchases conversion value",
     "website purchases conversion value",
+    // TikTok
+    "total complete payment value",
+    "complete payment value",
+    "valor total de pagamento concluido",
+    "valor de pagamento concluido",
+    "total purchase value",
+    "purchase value",
+    "valor total de compra",
+    "valor de compra",
+  ],
+  dateStart: [
+    "date",
+    "data",
+    "dia",
+    "day",
+    "stat time",
+    "inicio dos relatorios",
+    "reporting starts",
+    "data de inicio",
+    "start date",
+  ],
+  dateEnd: [
+    "termino dos relatorios",
+    "reporting ends",
+    "data de termino",
+    "data final",
+    "end date",
   ],
 }
+
+const TIKTOK_HINTS = [
+  "clicks destination",
+  "cliques destino",
+  "total complete payment value",
+  "complete payment value",
+  "complete payment roas",
+  "valor total de pagamento concluido",
+  "stat time",
+  "tiktok",
+]
 
 const META_HINTS = [
   "valor usado",
@@ -104,7 +155,6 @@ const META_HINTS = [
 
 const GOOGLE_HINTS = [
   "custo",
-  "cost",
   "impr",
   "valor conv",
   "conv value",
@@ -121,18 +171,31 @@ const DEFAULT_PLATFORM: Record<CSVFormat, string> = {
   analytica: "Não informada",
   meta: "Meta Ads",
   google: "Google Ads",
+  tiktok: "TikTok Ads",
   generic: "Não informada",
 }
 
-export type ColumnMap = Partial<Record<CampaignField, number>>
+export type ColumnMap = Partial<Record<ColumnField, number>>
 
-export function normalizeHeader(header: string): string {
+function baseNormalize(header: string): string {
   return header
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/^\ufeff/, "")
     .toLowerCase()
+}
+
+// Sem o conteúdo entre parênteses: "Valor usado (BRL)" -> "valor usado".
+export function normalizeHeader(header: string): string {
+  return baseNormalize(header)
     .replace(/\(.*?\)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+}
+
+// Com o conteúdo entre parênteses: "Clicks (destination)" -> "clicks destination".
+export function normalizeHeaderFull(header: string): string {
+  return baseNormalize(header)
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
 }
@@ -141,15 +204,19 @@ export function mapHeaders(headers: string[]): {
   columns: ColumnMap
   missing: CampaignField[]
 } {
-  const normalized = headers.map(normalizeHeader)
+  const full = headers.map(normalizeHeaderFull)
+  const short = headers.map(normalizeHeader)
   const used = new Set<number>()
   const columns: ColumnMap = {}
 
-  for (const field of Object.keys(HEADER_ALIASES) as CampaignField[]) {
+  for (const field of Object.keys(HEADER_ALIASES) as ColumnField[]) {
     for (const alias of HEADER_ALIASES[field]) {
-      const index = normalized.findIndex(
-        (header, i) => header === alias && !used.has(i)
-      )
+      // Primeiro o nome completo (com parênteses), depois o nome curto.
+      let index = full.findIndex((header, i) => header === alias && !used.has(i))
+
+      if (index < 0) {
+        index = short.findIndex((header, i) => header === alias && !used.has(i))
+      }
 
       if (index >= 0) {
         columns[field] = index
@@ -167,10 +234,17 @@ export function mapHeaders(headers: string[]): {
 }
 
 export function detectFormat(headers: string[]): CSVFormat {
-  const normalized = new Set(headers.map(normalizeHeader))
+  const names = new Set([
+    ...headers.map(normalizeHeader),
+    ...headers.map(normalizeHeaderFull),
+  ])
 
   const matches = (hints: string[]) =>
-    hints.filter((hint) => normalized.has(hint)).length
+    hints.filter((hint) => names.has(hint)).length
+
+  if (matches(TIKTOK_HINTS) > 0) {
+    return "tiktok"
+  }
 
   const meta = matches(META_HINTS)
   const google = matches(GOOGLE_HINTS)
@@ -186,7 +260,7 @@ export function detectFormat(headers: string[]): CSVFormat {
 
   if (
     templates.some((template) =>
-      template.every((header) => normalized.has(header))
+      template.every((header) => names.has(header))
     )
   ) {
     return "analytica"
@@ -196,7 +270,7 @@ export function detectFormat(headers: string[]): CSVFormat {
 }
 
 export interface RowMappingResult {
-  campaign: Campaign | null
+  campaign: CampaignRow | null
   errors: string[]
 }
 
@@ -211,7 +285,7 @@ export function mapRowToCampaign(
 ): RowMappingResult {
   const errors: string[] = []
 
-  const cell = (field: CampaignField) => {
+  const cell = (field: ColumnField) => {
     const index = columns[field]
     return index === undefined ? "" : (row[index] ?? "").trim()
   }
@@ -231,6 +305,26 @@ export function mapRowToCampaign(
     }
   }
 
+  const dates: Record<"dateStart" | "dateEnd", string | null> = {
+    dateStart: null,
+    dateEnd: null,
+  }
+
+  for (const field of ["dateStart", "dateEnd"] as const) {
+    const raw = cell(field)
+    const parsed = parseReportDate(raw)
+
+    if (parsed === "invalid") {
+      errors.push(`${FIELD_LABELS[field]} inválida ("${raw}").`)
+    } else {
+      dates[field] = parsed
+    }
+  }
+
+  if (dates.dateStart && dates.dateEnd && dates.dateEnd < dates.dateStart) {
+    errors.push("A data final é anterior à data inicial.")
+  }
+
   const name = cell("name")
 
   if (!name) {
@@ -247,6 +341,10 @@ export function mapRowToCampaign(
       name,
       platform: cell("platform") || DEFAULT_PLATFORM[options.format],
       ...values,
+      dateStart: dates.dateStart,
+      // Só guarda a data final quando ela é diferente da inicial.
+      dateEnd:
+        dates.dateEnd && dates.dateEnd !== dates.dateStart ? dates.dateEnd : null,
     },
     errors,
   }

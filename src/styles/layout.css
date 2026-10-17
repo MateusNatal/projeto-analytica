@@ -379,3 +379,61 @@
 .main:focus {
   outline: none;
 }
+
+/* Ações do topo: login/cadastro ou menu da conta, e tema ------------------ */
+
+.page-header {
+  padding-right: 0;
+  align-items: flex-start;
+}
+
+.page-header-text {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  min-width: 0;
+  flex: 1 1 360px;
+}
+
+.top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* O botão de tema deixa de ser fixo e fica junto das ações do topo */
+.top-actions .theme-toggle {
+  position: static;
+  box-shadow: none;
+}
+
+@media (max-width: 719px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Em coluna, a base de 360px viraria altura: aqui o texto ocupa só o necessário */
+  .page-header-text {
+    flex: none;
+  }
+
+  .top-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .top-actions .theme-toggle {
+    width: auto;
+    padding: 0 var(--space-4);
+    background: var(--surface-solid);
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  .top-actions .theme-toggle-label {
+    display: inline;
+  }
+}
